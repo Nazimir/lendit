@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeImage } from '@/lib/imageUpload';
+import { ProgressBanner } from '@/components/Spinner';
 import type { Profile } from '@/lib/types';
 
 export function ProfileEditor({ profile }: { profile: Profile }) {
@@ -14,6 +15,7 @@ export function ProfileEditor({ profile }: { profile: Profile }) {
   const [phone, setPhone] = useState(profile?.phone || '');
   const [photo, setPhoto] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   if (!open) {
@@ -26,20 +28,23 @@ export function ProfileEditor({ profile }: { profile: Profile }) {
     const sb = createClient();
     let photoUrl = profile?.photo_url;
     if (photo) {
+      const isHeic = /\.hei[cf]$/i.test(photo.name) || /heic|heif/i.test(photo.type);
+      setProgress(isHeic ? 'Converting & uploading photo…' : 'Uploading photo…');
       let normalized: File;
       try { normalized = await normalizeImage(photo); }
-      catch (e: any) { setError('Could not read photo: ' + (e?.message || 'unknown error')); setBusy(false); return; }
+      catch (e: any) { setError('Could not read photo: ' + (e?.message || 'unknown error')); setBusy(false); setProgress(null); return; }
       const ext = (normalized.name.split('.').pop() || 'jpg').toLowerCase();
       const path = `${profile.id}/avatar-${Date.now()}.${ext}`;
       const { error: upErr } = await sb.storage.from('profile-photos').upload(path, normalized, { upsert: true });
-      if (upErr) { setError(upErr.message); setBusy(false); return; }
+      if (upErr) { setError(upErr.message); setBusy(false); setProgress(null); return; }
       const { data: pub } = sb.storage.from('profile-photos').getPublicUrl(path);
       photoUrl = pub.publicUrl;
     }
+    setProgress('Saving profile…');
     const { error } = await sb.from('profiles').update({
       first_name: firstName, suburb, phone, photo_url: photoUrl
     }).eq('id', profile.id);
-    setBusy(false);
+    setBusy(false); setProgress(null);
     if (error) { setError(error.message); return; }
     setOpen(false);
     router.refresh();
@@ -64,6 +69,7 @@ export function ProfileEditor({ profile }: { profile: Profile }) {
         <input className="input" type="file" accept="image/*" onChange={e => setPhoto(e.target.files?.[0] || null)} />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
+      {progress && <ProgressBanner message={progress} />}
       <div className="flex gap-2">
         <button type="button" className="btn-secondary flex-1" onClick={() => setOpen(false)} disabled={busy}>Cancel</button>
         <button className="btn-primary flex-1" disabled={busy}>{busy ? 'Saving…' : 'Save'}</button>

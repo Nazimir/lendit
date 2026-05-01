@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeImage } from '@/lib/imageUpload';
+import { ProgressBanner } from '@/components/Spinner';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
@@ -23,6 +25,7 @@ export default function SignupPage() {
     setBusy(true); setError(null); setInfo(null);
     const supabase = createClient();
 
+    setProgress('Creating your account…');
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -31,12 +34,14 @@ export default function SignupPage() {
         emailRedirectTo: `${window.location.origin}/auth/callback`
       }
     });
-    if (error) { setError(error.message); setBusy(false); return; }
+    if (error) { setError(error.message); setBusy(false); setProgress(null); return; }
 
     // If a photo was supplied and we have an active session, upload it now.
     // HEIC files (iPhone defaults) are auto-converted to JPEG.
     const userId = data.user?.id;
     if (userId && photoFile) {
+      const isHeic = /\.hei[cf]$/i.test(photoFile.name) || /heic|heif/i.test(photoFile.type);
+      setProgress(isHeic ? 'Converting & uploading photo…' : 'Uploading profile photo…');
       let normalized: File;
       try { normalized = await normalizeImage(photoFile); }
       catch { normalized = photoFile; }
@@ -57,6 +62,7 @@ export default function SignupPage() {
     } else {
       setInfo("Check your email for a confirmation link, then sign in.");
       setBusy(false);
+      setProgress(null);
     }
   }
 
@@ -96,6 +102,7 @@ export default function SignupPage() {
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           {info && <p className="text-sm text-accent-700">{info}</p>}
+          {progress && <ProgressBanner message={progress} />}
           <button className="btn-primary w-full" disabled={busy}>{busy ? 'Creating…' : 'Create account'}</button>
         </form>
         <p className="text-center text-sm text-gray-600 mt-6">

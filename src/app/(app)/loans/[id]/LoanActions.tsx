@@ -4,15 +4,19 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeImage } from '@/lib/imageUpload';
+import { ProgressBanner } from '@/components/Spinner';
 import type { Loan } from '@/lib/types';
 
 export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function uploadPhoto(file: File, kind: 'handover' | 'return') {
     const sb = createClient();
+    const isHeic = /\.hei[cf]$/i.test(file.name) || /heic|heif/i.test(file.type);
+    setProgress(isHeic ? 'Converting & uploading photo…' : 'Uploading photo…');
     const normalized = await normalizeImage(file);
     const ext = (normalized.name.split('.').pop() || 'jpg').toLowerCase();
     const path = `${loan.id}/${kind}-${Date.now()}.${ext}`;
@@ -26,6 +30,7 @@ export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean 
     setBusy(true); setError(null);
     try {
       const url = await uploadPhoto(file, 'handover');
+      setProgress('Starting the loan clock…');
       const now = new Date();
       const due = new Date(now.getTime() + loan.loan_period_days * 86_400_000);
       const sb = createClient();
@@ -38,17 +43,18 @@ export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean 
       if (error) throw error;
       router.refresh();
     } catch (e: any) { setError(e.message || 'Failed'); }
-    finally { setBusy(false); }
+    finally { setBusy(false); setProgress(null); }
   }
 
   async function initiateReturn() {
     setBusy(true); setError(null);
+    setProgress('Marking as returned…');
     const sb = createClient();
     const { error } = await sb.from('loans').update({
       status: 'pending_return',
       return_initiated_at: new Date().toISOString()
     }).eq('id', loan.id);
-    setBusy(false);
+    setBusy(false); setProgress(null);
     if (error) { setError(error.message); return; }
     router.refresh();
   }
@@ -57,6 +63,7 @@ export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean 
     setBusy(true); setError(null);
     try {
       const url = await uploadPhoto(file, 'return');
+      setProgress('Completing the loan…');
       const sb = createClient();
       const { error } = await sb.from('loans').update({
         status: 'completed',
@@ -66,7 +73,7 @@ export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean 
       if (error) throw error;
       router.refresh();
     } catch (e: any) { setError(e.message || 'Failed'); }
-    finally { setBusy(false); }
+    finally { setBusy(false); setProgress(null); }
   }
 
   // Pick which actions to show based on status + role
@@ -109,6 +116,7 @@ export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean 
   return (
     <div className="card p-4 space-y-3">
       {body}
+      {progress && <ProgressBanner message={progress} />}
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>
   );

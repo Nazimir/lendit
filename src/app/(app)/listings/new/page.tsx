@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { CATEGORIES } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
+import { ProgressBanner } from '@/components/Spinner';
 import { normalizeImage } from '@/lib/imageUpload';
 
 export default function NewListingPage() {
@@ -17,6 +18,7 @@ export default function NewListingPage() {
   const [extensions, setExtensions] = useState(false);
   const [available, setAvailable] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
@@ -32,16 +34,23 @@ export default function NewListingPage() {
     const urls: string[] = [];
     for (let i = 0; i < files.length; i++) {
       let f: File;
+      const isHeic = /\.hei[cf]$/i.test(files[i].name) || /heic|heif/i.test(files[i].type);
+      setProgress(
+        files.length > 1
+          ? `${isHeic ? 'Converting & uploading' : 'Uploading'} photo ${i + 1} of ${files.length}…`
+          : `${isHeic ? 'Converting & uploading photo' : 'Uploading photo'}…`
+      );
       try { f = await normalizeImage(files[i]); }
-      catch (e: any) { setError('Could not read photo: ' + (e?.message || 'unknown error')); setBusy(false); return; }
+      catch (e: any) { setError('Could not read photo: ' + (e?.message || 'unknown error')); setBusy(false); setProgress(null); return; }
       const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
       const path = `${user.id}/${Date.now()}-${i}.${ext}`;
       const { error: upErr } = await supabase.storage.from('item-photos').upload(path, f, { upsert: false });
-      if (upErr) { setError('Photo upload failed: ' + upErr.message); setBusy(false); return; }
+      if (upErr) { setError('Photo upload failed: ' + upErr.message); setBusy(false); setProgress(null); return; }
       const { data: pub } = supabase.storage.from('item-photos').getPublicUrl(path);
       urls.push(pub.publicUrl);
     }
 
+    setProgress('Publishing listing…');
     const { data: item, error: insErr } = await supabase.from('items').insert({
       owner_id: user.id,
       title: title.trim(),
@@ -53,7 +62,7 @@ export default function NewListingPage() {
       is_available: available
     }).select('id').single();
 
-    if (insErr) { setError(insErr.message); setBusy(false); return; }
+    if (insErr) { setError(insErr.message); setBusy(false); setProgress(null); return; }
     router.replace(`/listings/${item!.id}`);
     router.refresh();
   }
@@ -94,6 +103,7 @@ export default function NewListingPage() {
           <input type="checkbox" checked={available} onChange={e => setAvailable(e.target.checked)} className="h-5 w-5 accent-accent-400" />
         </label>
         {error && <p className="text-sm text-red-600">{error}</p>}
+        {progress && <ProgressBanner message={progress} />}
         <button className="btn-primary w-full" disabled={busy}>{busy ? 'Publishing…' : 'Publish listing'}</button>
       </form>
     </main>
