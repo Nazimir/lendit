@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { CATEGORIES } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
+import { normalizeImage } from '@/lib/imageUpload';
 
 export default function NewListingPage() {
   const router = useRouter();
@@ -27,10 +28,12 @@ export default function NewListingPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setError('Not signed in.'); setBusy(false); return; }
 
-    // Upload photos
+    // Upload photos (auto-converting HEIC to JPEG for browser compatibility)
     const urls: string[] = [];
     for (let i = 0; i < files.length; i++) {
-      const f = files[i];
+      let f: File;
+      try { f = await normalizeImage(files[i]); }
+      catch (e: any) { setError('Could not read photo: ' + (e?.message || 'unknown error')); setBusy(false); return; }
       const ext = (f.name.split('.').pop() || 'jpg').toLowerCase();
       const path = `${user.id}/${Date.now()}-${i}.${ext}`;
       const { error: upErr } = await supabase.storage.from('item-photos').upload(path, f, { upsert: false });

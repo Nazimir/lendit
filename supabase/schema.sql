@@ -222,6 +222,7 @@ as $$
 declare
   v_max_days int;
   v_claimed uuid;
+  v_loan_id uuid;
 begin
   if new.status = 'accepted' and old.status = 'pending' then
     -- Atomically claim the item: this only succeeds if it's still available.
@@ -237,7 +238,14 @@ begin
     select max_loan_days into v_max_days from public.items where id = new.item_id;
 
     insert into public.loans (item_id, borrower_id, lender_id, request_id, loan_period_days, status)
-    values (new.item_id, new.borrower_id, new.lender_id, new.id, coalesce(v_max_days,7), 'pending_handover');
+    values (new.item_id, new.borrower_id, new.lender_id, new.id, coalesce(v_max_days,7), 'pending_handover')
+    returning id into v_loan_id;
+
+    -- Migrate any messages attached to the request thread onto the loan thread,
+    -- so the conversation continues in one place after acceptance.
+    update public.messages
+       set thread_kind = 'loan', thread_id = v_loan_id
+     where thread_kind = 'request' and thread_id = new.id;
 
     -- Cancel sibling pending requests from same borrower for same item
     update public.borrow_requests

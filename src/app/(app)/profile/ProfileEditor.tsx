@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { normalizeImage } from '@/lib/imageUpload';
 import type { Profile } from '@/lib/types';
 
 export function ProfileEditor({ profile }: { profile: Profile }) {
@@ -25,9 +26,12 @@ export function ProfileEditor({ profile }: { profile: Profile }) {
     const sb = createClient();
     let photoUrl = profile?.photo_url;
     if (photo) {
-      const ext = (photo.name.split('.').pop() || 'jpg').toLowerCase();
+      let normalized: File;
+      try { normalized = await normalizeImage(photo); }
+      catch (e: any) { setError('Could not read photo: ' + (e?.message || 'unknown error')); setBusy(false); return; }
+      const ext = (normalized.name.split('.').pop() || 'jpg').toLowerCase();
       const path = `${profile.id}/avatar-${Date.now()}.${ext}`;
-      const { error: upErr } = await sb.storage.from('profile-photos').upload(path, photo, { upsert: true });
+      const { error: upErr } = await sb.storage.from('profile-photos').upload(path, normalized, { upsert: true });
       if (upErr) { setError(upErr.message); setBusy(false); return; }
       const { data: pub } = sb.storage.from('profile-photos').getPublicUrl(path);
       photoUrl = pub.publicUrl;

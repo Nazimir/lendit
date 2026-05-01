@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { normalizeImage } from '@/lib/imageUpload';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -33,13 +34,17 @@ export default function SignupPage() {
     if (error) { setError(error.message); setBusy(false); return; }
 
     // If a photo was supplied and we have an active session, upload it now.
+    // HEIC files (iPhone defaults) are auto-converted to JPEG.
     const userId = data.user?.id;
     if (userId && photoFile) {
-      const ext = photoFile.name.split('.').pop() || 'jpg';
+      let normalized: File;
+      try { normalized = await normalizeImage(photoFile); }
+      catch { normalized = photoFile; }
+      const ext = (normalized.name.split('.').pop() || 'jpg').toLowerCase();
       const path = `${userId}/avatar.${ext}`;
       const { error: upErr } = await supabase.storage
         .from('profile-photos')
-        .upload(path, photoFile, { upsert: true });
+        .upload(path, normalized, { upsert: true });
       if (!upErr) {
         const { data: pub } = supabase.storage.from('profile-photos').getPublicUrl(path);
         await supabase.from('profiles').update({ photo_url: pub.publicUrl }).eq('id', userId);

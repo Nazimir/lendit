@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { normalizeImage } from '@/lib/imageUpload';
 import type { Loan } from '@/lib/types';
 
 export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean }) {
@@ -12,9 +13,10 @@ export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean 
 
   async function uploadPhoto(file: File, kind: 'handover' | 'return') {
     const sb = createClient();
-    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const normalized = await normalizeImage(file);
+    const ext = (normalized.name.split('.').pop() || 'jpg').toLowerCase();
     const path = `${loan.id}/${kind}-${Date.now()}.${ext}`;
-    const { error: upErr } = await sb.storage.from('loan-photos').upload(path, file, { upsert: false });
+    const { error: upErr } = await sb.storage.from('loan-photos').upload(path, normalized, { upsert: false });
     if (upErr) throw upErr;
     const { data: pub } = sb.storage.from('loan-photos').getPublicUrl(path);
     return pub.publicUrl;
