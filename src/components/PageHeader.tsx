@@ -12,7 +12,7 @@ export function PageHeader({ title, action, back }: { title: string; action?: Re
               </svg>
             </Link>
           )}
-          <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+          <h1 className="font-display text-2xl tracking-tight">{title}</h1>
         </div>
         {action}
       </div>

@@ -30,6 +30,13 @@ export interface Profile {
   updated_at: string;
 }
 
+export interface Quirks {
+  origin?: string;
+  gifted_by?: string;
+  cravings?: string;
+  habits?: string;
+}
+
 export interface Item {
   id: string;
   owner_id: string;
@@ -41,9 +48,37 @@ export interface Item {
   extensions_allowed: boolean;
   is_available: boolean;
   expected_back_at: string | null;
+  quirks: Quirks;
   created_at: string;
   updated_at: string;
 }
+
+export const QUIRK_QUESTIONS: { key: keyof Quirks; label: string; placeholder: string; helper: string }[] = [
+  {
+    key: 'origin',
+    label: 'Origin story',
+    placeholder: 'Charity shop find, hand-me-down, etc.',
+    helper: 'Where did this come from?'
+  },
+  {
+    key: 'gifted_by',
+    label: 'Gifted by / made by',
+    placeholder: 'Mum · my niece · myself, hopefully',
+    helper: 'Optional. Who put this into your life?'
+  },
+  {
+    key: 'cravings',
+    label: 'What it craves',
+    placeholder: 'Earl Grey, AA batteries, sunlight, attention',
+    helper: 'Foods, fuels, vibes — get weird.'
+  },
+  {
+    key: 'habits',
+    label: 'Quirks & habits',
+    placeholder: 'Squeaks before it works · refuses to be put down on a Tuesday',
+    helper: 'Anything the next person should know.'
+  }
+];
 
 export interface ItemWithOwner extends Item {
   owner_first_name: string;

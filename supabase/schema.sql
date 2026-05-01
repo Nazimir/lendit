@@ -64,6 +64,7 @@ create table public.items (
   extensions_allowed boolean not null default false,
   is_available boolean not null default true,
   expected_back_at timestamptz,                -- synced from active loan's due_at
+  quirks jsonb not null default '{}'::jsonb,   -- optional personality fields
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );

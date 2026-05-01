@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { CATEGORIES } from '@/lib/types';
+import { CATEGORIES, QUIRK_QUESTIONS, type Quirks } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { ProgressBanner } from '@/components/Spinner';
 import { normalizeImage } from '@/lib/imageUpload';
@@ -17,6 +17,7 @@ export default function NewListingPage() {
   const [maxDays, setMaxDays] = useState(7);
   const [extensions, setExtensions] = useState(false);
   const [available, setAvailable] = useState(true);
+  const [quirks, setQuirks] = useState<Quirks>({});
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +52,10 @@ export default function NewListingPage() {
     }
 
     setProgress('Publishing listing…');
+    // Drop empty quirks so the JSON stays clean
+    const cleanQuirks = Object.fromEntries(
+      Object.entries(quirks).filter(([, v]) => v && v.trim().length > 0).map(([k, v]) => [k, v!.trim()])
+    );
     const { data: item, error: insErr } = await supabase.from('items').insert({
       owner_id: user.id,
       title: title.trim(),
@@ -59,7 +64,8 @@ export default function NewListingPage() {
       photos: urls,
       max_loan_days: maxDays,
       extensions_allowed: extensions,
-      is_available: available
+      is_available: available,
+      quirks: cleanQuirks
     }).select('id').single();
 
     if (insErr) { setError(insErr.message); setBusy(false); setProgress(null); return; }
@@ -102,6 +108,29 @@ export default function NewListingPage() {
           <span className="text-sm">Available now</span>
           <input type="checkbox" checked={available} onChange={e => setAvailable(e.target.checked)} className="h-5 w-5 accent-accent-400" />
         </label>
+
+        <div className="card p-4 space-y-4">
+          <div>
+            <h3 className="font-display text-xl">Give it some personality</h3>
+            <p className="text-xs text-gray-500 mt-1">
+              All optional. Anything you put here shows up on the listing as little notes.
+            </p>
+          </div>
+          {QUIRK_QUESTIONS.map(q => (
+            <div key={q.key}>
+              <label className="label">{q.label}</label>
+              <input
+                className="input"
+                maxLength={120}
+                placeholder={q.placeholder}
+                value={quirks[q.key] || ''}
+                onChange={e => setQuirks(prev => ({ ...prev, [q.key]: e.target.value }))}
+              />
+              <p className="text-[11px] text-gray-500 mt-1">{q.helper}</p>
+            </div>
+          ))}
+        </div>
+
         {error && <p className="text-sm text-red-600">{error}</p>}
         {progress && <ProgressBanner message={progress} />}
         <button className="btn-primary w-full" disabled={busy}>{busy ? 'Publishing…' : 'Publish listing'}</button>

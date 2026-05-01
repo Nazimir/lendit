@@ -6,6 +6,8 @@ import { Avatar } from '@/components/Avatar';
 import { Stars } from '@/components/Stars';
 import { RequestForm } from './RequestForm';
 import { dateLabel } from '@/lib/utils';
+import { paletteForCategory } from '@/lib/categoryStyle';
+import { QUIRK_QUESTIONS } from '@/lib/types';
 import type { Item, Profile, BorrowRequest } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -18,12 +20,10 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
   const { data: item } = await supabase.from('items').select('*').eq('id', params.id).single();
   if (!item) notFound();
 
-  // If you're the owner, send to the owner-side page
   if ((item as Item).owner_id === user.id) redirect(`/listings/${params.id}`);
 
   const { data: owner } = await supabase.from('profiles').select('*').eq('id', (item as Item).owner_id).single();
 
-  // Existing pending request from me?
   const { data: mine } = await supabase
     .from('borrow_requests')
     .select('*')
@@ -31,73 +31,164 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
     .order('created_at', { ascending: false }).limit(1);
 
   const existing = (mine?.[0] || null) as BorrowRequest | null;
+  const palette = paletteForCategory(item.category);
+  const quirkEntries = QUIRK_QUESTIONS
+    .map(q => ({ q, value: (item.quirks || {})[q.key] as string | undefined }))
+    .filter(x => x.value && x.value.trim().length > 0);
+
+  // Short id for the fake barcode line at the bottom
+  const shortId = item.id.replace(/-/g, '').slice(0, 12).toUpperCase();
+  const createdLabel = new Date(item.created_at).toLocaleDateString(undefined, {
+    day: '2-digit', month: '2-digit', year: '2-digit'
+  }).replace(/\//g, '-');
 
   return (
     <main>
-      <PageHeader title="Item" back="/home" />
+      <PageHeader title="Listing" back="/home" />
       <div className="px-4 max-w-2xl mx-auto pb-8">
-        {item.photos[0] && (
-          <div className="card overflow-hidden mb-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={item.photos[0]} alt="" className="w-full aspect-[4/3] object-cover" />
+        <article
+          className="rounded-3xl overflow-hidden border-2 shadow-soft"
+          style={{ background: palette.bg, borderColor: palette.accent, color: palette.ink }}
+        >
+          {/* HERO */}
+          <div className="px-5 pt-5 pb-3 flex items-start justify-between gap-3">
+            <div className="font-mono text-[10px] uppercase tracking-wider opacity-70">
+              {item.category} · Listing
+            </div>
+            <div className="font-mono text-[10px] uppercase tracking-wider opacity-70">
+              No. {shortId.slice(0, 6)}
+            </div>
           </div>
-        )}
-        {item.photos.length > 1 && (
-          <div className="grid grid-cols-4 gap-2 mb-4">
-            {item.photos.slice(1).map((p: string, i: number) => (
-              <div key={i} className="card overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p} alt="" className="w-full aspect-square object-cover" />
-              </div>
-            ))}
-          </div>
-        )}
 
-        <h2 className="text-xl font-semibold">{item.title}</h2>
-        <div className="flex flex-wrap gap-2 mt-2">
-          <span className="pill-muted">{item.category}</span>
-          <span className="pill-muted">Up to {item.max_loan_days}d</span>
-          {item.extensions_allowed && <span className="pill-accent">Extensions OK</span>}
-          {!item.is_available && <span className="pill-rose">On loan</span>}
-        </div>
-
-        {!item.is_available && item.expected_back_at && (
-          <div className="card p-3 mt-3 flex items-center gap-3 bg-cream-50">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#577559" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 7v5l3 2" />
-            </svg>
-            <div className="text-sm">
-              <span className="text-gray-600">Expected back </span>
-              <span className="font-medium">{dateLabel(item.expected_back_at)}</span>
-              {owner && (
-                <>
-                  {' · '}
-                  <Link href={`/messages/${owner.id}`} className="text-accent-700 font-medium hover:underline">
-                    Message {owner.first_name}
-                  </Link>
-                </>
+          <div className="px-5 pb-3">
+            <h1 className="font-display text-5xl leading-[0.95] tracking-tight" style={{ color: palette.ink }}>
+              {item.title}
+            </h1>
+            <div className="flex flex-wrap gap-2 mt-3">
+              <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-full" style={{ background: palette.pill, color: palette.ink }}>
+                Up to {item.max_loan_days}d
+              </span>
+              {item.extensions_allowed && (
+                <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-full" style={{ background: palette.pill, color: palette.ink }}>
+                  Extensions OK
+                </span>
+              )}
+              {!item.is_available && (
+                <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-rose-soft text-accent-900">
+                  On loan
+                </span>
               )}
             </div>
           </div>
-        )}
 
-        <p className="text-gray-700 mt-4 whitespace-pre-wrap">{item.description}</p>
-
-        {owner && (
-          <Link href={`/u/${owner.id}`} className="card p-3 flex items-center gap-3 mt-5 hover:shadow-md transition">
-            <Avatar url={owner.photo_url} name={owner.first_name} size={44} />
-            <div className="min-w-0 flex-1">
-              <div className="font-medium">{owner.first_name}</div>
-              <div className="text-xs text-gray-500">{owner.suburb}</div>
+          {/* PHOTO */}
+          {item.photos[0] && (
+            <div className="mx-5 mb-4 border-2 rounded-2xl overflow-hidden" style={{ borderColor: palette.accent }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={item.photos[0]} alt="" className="w-full aspect-[4/3] object-cover" />
             </div>
-            <div className="text-right">
-              <Stars value={(owner as Profile).reputation_score} />
-              <div className="text-xs text-gray-500 mt-0.5">{(owner as Profile).reputation_score.toFixed(1)}</div>
+          )}
+          {item.photos.length > 1 && (
+            <div className="mx-5 mb-4 grid grid-cols-4 gap-2">
+              {item.photos.slice(1).map((p: string, i: number) => (
+                <div key={i} className="border rounded-xl overflow-hidden" style={{ borderColor: palette.accent }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p} alt="" className="w-full aspect-square object-cover" />
+                </div>
+              ))}
             </div>
-          </Link>
-        )}
+          )}
 
+          {/* EXPECTED BACK */}
+          {!item.is_available && item.expected_back_at && (
+            <div className="mx-5 mb-4 px-4 py-3 rounded-xl flex items-center gap-3" style={{ background: 'rgba(255,255,255,0.55)' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={palette.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+              <div className="text-sm">
+                <span className="opacity-70">Expected back </span>
+                <span className="font-medium">{dateLabel(item.expected_back_at)}</span>
+                {owner && (
+                  <>
+                    {' · '}
+                    <Link href={`/messages/${owner.id}`} className="font-medium underline">
+                      Message {owner.first_name}
+                    </Link>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* DESCRIPTION */}
+          <div className="mx-5 mb-4 grid grid-cols-[auto_1fr] gap-4 items-start">
+            <div className="font-mono text-[10px] uppercase tracking-wider opacity-70 pt-1">
+              About
+            </div>
+            <p className="whitespace-pre-wrap leading-relaxed">{item.description}</p>
+          </div>
+
+          {/* QUIRKS */}
+          {quirkEntries.length > 0 && (
+            <div className="mx-5 mb-5 border-t-2 border-dashed pt-4" style={{ borderColor: palette.accent }}>
+              <div className="font-mono text-[10px] uppercase tracking-wider opacity-70 mb-3">
+                Personality
+              </div>
+              <ul className="space-y-3">
+                {quirkEntries.map(({ q, value }) => (
+                  <li key={q.key} className="flex items-start gap-3">
+                    <span className="font-mono text-[10px] uppercase tracking-wider pt-1 opacity-70 shrink-0 w-24">
+                      {q.label}
+                    </span>
+                    <span className="font-script text-2xl leading-tight" style={{ color: palette.scribble }}>
+                      “{value}”
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* MEMBERS / OWNER */}
+          {owner && (
+            <div className="mx-5 mb-5 border-t-2 pt-4" style={{ borderColor: palette.accent }}>
+              <div className="font-mono text-[10px] uppercase tracking-wider opacity-70 mb-2">
+                Lender
+              </div>
+              <Link href={`/u/${owner.id}`} className="flex items-center gap-3 hover:opacity-80">
+                <Avatar url={owner.photo_url} name={owner.first_name} size={44} />
+                <div className="min-w-0 flex-1">
+                  <div className="font-display text-xl">{owner.first_name}</div>
+                  <div className="text-xs opacity-70">{owner.suburb}</div>
+                </div>
+                <div className="text-right">
+                  <Stars value={Number((owner as Profile).reputation_score)} />
+                  <div className="text-xs opacity-70 mt-0.5">{Number((owner as Profile).reputation_score).toFixed(1)}</div>
+                </div>
+              </Link>
+            </div>
+          )}
+
+          {/* BARCODE-Y FOOTER */}
+          <div className="px-5 pb-5 pt-3 border-t-2 mt-2" style={{ borderColor: palette.accent }}>
+            <div className="font-mono text-[10px] uppercase tracking-wider opacity-70 flex items-center justify-between">
+              <span>LENDIT · {createdLabel}</span>
+              <span>NO REFUNDS — JUST RETURNS</span>
+            </div>
+            <div
+              aria-hidden
+              className="mt-2 h-7 bg-repeat-x"
+              style={{
+                backgroundImage:
+                  `repeating-linear-gradient(90deg, ${palette.ink} 0 1px, transparent 1px 3px, ${palette.ink} 3px 5px, transparent 5px 9px, ${palette.ink} 9px 11px, transparent 11px 14px)`
+              }}
+            />
+            <div className="font-mono text-[10px] tracking-[0.4em] mt-1 opacity-80">{shortId}</div>
+          </div>
+        </article>
+
+        {/* REQUEST FORM (kept on its own card to remain functional) */}
         <div className="mt-6">
           <RequestForm itemId={item.id} ownerId={(item as Item).owner_id} existing={existing} available={item.is_available} />
         </div>

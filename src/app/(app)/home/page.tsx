@@ -55,8 +55,10 @@ export default async function HomePage({ searchParams }: { searchParams: { q?: s
   return (
     <main className="px-4 max-w-2xl mx-auto pt-[env(safe-area-inset-top)]">
       <div className="pt-6 pb-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Hi {me?.first_name?.split(' ')[0] || 'there'}</h1>
-        <p className="text-gray-500 text-sm">What do you need to borrow today?</p>
+        <h1 className="font-display text-4xl tracking-tight leading-none">
+          Hi <span className="font-script text-accent-600">{me?.first_name?.split(' ')[0] || 'there'}</span>
+        </h1>
+        <p className="text-gray-500 text-sm mt-1">What do you need to borrow today?</p>
       </div>
 
       <SearchBar defaultValue={q} />

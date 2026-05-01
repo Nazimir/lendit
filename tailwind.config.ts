@@ -36,7 +36,10 @@ const config: Config = {
         soft: '0 4px 14px -6px rgba(31,42,33,0.10), 0 2px 4px -2px rgba(31,42,33,0.05)'
       },
       fontFamily: {
-        sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif']
+        sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        display: ['var(--font-display)', 'Fraunces', 'Georgia', 'serif'],
+        script: ['var(--font-script)', 'Caveat', 'cursive'],
+        mono: ['var(--font-mono)', 'ui-monospace', 'monospace']
       }
     }
   },
