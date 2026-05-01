@@ -143,6 +143,7 @@ create table public.messages (
   sender_id uuid not null references public.profiles(id) on delete cascade,
   recipient_id uuid not null references public.profiles(id) on delete cascade,
   body text not null,
+  context_item_id uuid references public.items(id) on delete set null,
   created_at timestamptz default now()
 );
 
@@ -153,6 +154,7 @@ create index messages_pair_idx on public.messages (
 );
 create index messages_recipient_idx on public.messages (recipient_id, created_at desc);
 create index messages_sender_idx on public.messages (sender_id);
+create index messages_context_item_idx on public.messages (context_item_id) where context_item_id is not null;
 
 -- =====================================================================
 -- REVIEWS

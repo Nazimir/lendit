@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/PageHeader';
-import { Avatar } from '@/components/Avatar';
 import { Stars } from '@/components/Stars';
 import { ProfileEditor } from './ProfileEditor';
 import { SignOut } from './SignOut';
+import { AvatarUploader } from './AvatarUploader';
 import type { Profile, Review } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -25,7 +25,7 @@ export default async function ProfilePage() {
       <PageHeader title="Profile" action={<SignOut />} />
       <div className="px-4 max-w-2xl mx-auto pb-8">
         <div className="card p-5 flex items-center gap-4">
-          <Avatar url={profile?.photo_url} name={profile?.first_name || '?'} size={64} />
+          <AvatarUploader profile={profile} size={64} />
           <div className="min-w-0 flex-1">
             <div className="text-lg font-semibold">{profile?.first_name}</div>
             <div className="text-sm text-gray-500">{profile?.suburb}</div>

@@ -88,6 +88,7 @@ export interface Message {
   sender_id: string;
   recipient_id: string;
   body: string;
+  context_item_id: string | null;
   created_at: string;
 }
 

@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/PageHeader';
 import { Avatar } from '@/components/Avatar';
 import { Thread } from './Thread';
-import type { Profile, Message } from '@/lib/types';
+import type { Profile, Message, Item } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +26,16 @@ export default async function ConversationPage({ params }: { params: { userId: s
 
   if (!other) notFound();
 
+  // Pre-fetch any items referenced via context_item_id so the thread can
+  // render reply-style preview cards.
+  const messages = (msgs || []) as Message[];
+  const itemIds = Array.from(new Set(messages.map(m => m.context_item_id).filter(Boolean) as string[]));
+  let items: Item[] = [];
+  if (itemIds.length > 0) {
+    const { data } = await supabase.from('items').select('*').in('id', itemIds);
+    items = (data || []) as Item[];
+  }
+
   return (
     <main>
       <PageHeader
@@ -46,7 +56,8 @@ export default async function ConversationPage({ params }: { params: { userId: s
         <Thread
           meId={user.id}
           otherId={params.userId}
-          initialMessages={(msgs || []) as Message[]}
+          initialMessages={messages}
+          contextItems={items}
         />
       </div>
     </main>

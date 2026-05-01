@@ -49,10 +49,14 @@ export function RequestForm({
     if (error) { setError(error.message); setBusy(false); return; }
 
     // Also drop the request message into the chat so the lender sees it in
-    // their inbox, with no extra step needed.
+    // their inbox, with no extra step needed. Tag it with the item so the
+    // chat can render a context card linking back to the listing.
     if (message.trim()) {
       await sb.from('messages').insert({
-        sender_id: user.id, recipient_id: ownerId, body: message.trim()
+        sender_id: user.id,
+        recipient_id: ownerId,
+        body: message.trim(),
+        context_item_id: itemId
       });
     }
 
