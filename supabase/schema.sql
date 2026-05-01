@@ -194,6 +194,59 @@ create trigger reviews_recalc_rep
   for each row execute function public.recalc_reputation();
 
 -- =====================================================================
+-- LOAN EXTENSIONS
+-- Borrower asks for more days, lender approves or denies. If approved,
+-- due_at increases and the loan reverts from pending_return to active.
+-- =====================================================================
+create type extension_status as enum ('pending', 'approved', 'denied', 'cancelled');
+
+create table public.loan_extensions (
+  id uuid primary key default uuid_generate_v4(),
+  loan_id uuid not null references public.loans(id) on delete cascade,
+  requested_by uuid not null references public.profiles(id) on delete cascade,
+  additional_days int not null check (additional_days between 1 and 365),
+  reason text not null default '',
+  status extension_status not null default 'pending',
+  decided_at timestamptz,
+  created_at timestamptz default now()
+);
+
+create index loan_extensions_loan_idx on public.loan_extensions (loan_id, created_at desc);
+create index loan_extensions_pending_idx on public.loan_extensions (loan_id) where status = 'pending';
+
+create or replace function public.on_extension_decided()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+declare
+  v_due timestamptz;
+  v_status loan_status;
+begin
+  if new.status = 'approved' and old.status = 'pending' then
+    select due_at, status into v_due, v_status from public.loans where id = new.loan_id;
+
+    update public.loans
+       set due_at = coalesce(v_due, now()) + (new.additional_days || ' days')::interval,
+           extensions_used = extensions_used + 1,
+           status = case when v_status = 'pending_return' then 'active' else v_status end,
+           return_initiated_at = case when v_status = 'pending_return' then null else return_initiated_at end,
+           updated_at = now()
+     where id = new.loan_id;
+
+    new.decided_at := now();
+  elsif new.status = 'denied' and old.status = 'pending' then
+    new.decided_at := now();
+  end if;
+  return new;
+end;
+$$;
+
+create trigger ext_on_decided
+  before update on public.loan_extensions
+  for each row execute function public.on_extension_decided();
+
+-- =====================================================================
 -- DISPUTES (phase 2, table created now so it's ready)
 -- =====================================================================
 create type dispute_status as enum ('open','resolved');
@@ -312,6 +365,7 @@ alter table public.loans enable row level security;
 alter table public.messages enable row level security;
 alter table public.reviews enable row level security;
 alter table public.disputes enable row level security;
+alter table public.loan_extensions enable row level security;
 
 -- Profiles: anyone signed in can read; only the owner can update.
 create policy "profiles read for authenticated"
@@ -391,6 +445,40 @@ create policy "reviews insert as participant after completion"
         and auth.uid() in (l.borrower_id, l.lender_id)
         and reviewee_id = case when auth.uid() = l.borrower_id then l.lender_id else l.borrower_id end
     )
+  );
+
+-- Loan extensions: participants can read; only borrower can insert; only
+-- lender can update (approve/deny). Borrower-initiated cancel is handled
+-- by an UPDATE check that the requested_by matches the current user.
+create policy "ext read participants"
+  on public.loan_extensions for select to authenticated
+  using (exists (select 1 from public.loans l
+                  where l.id = loan_id and auth.uid() in (l.borrower_id, l.lender_id)));
+
+create policy "ext borrower can insert"
+  on public.loan_extensions for insert to authenticated
+  with check (
+    requested_by = auth.uid() and
+    exists (
+      select 1 from public.loans l
+      where l.id = loan_id
+        and l.borrower_id = auth.uid()
+        and l.status in ('active','pending_return')
+        and (select extensions_allowed from public.items where id = l.item_id) = true
+    )
+  );
+
+create policy "ext lender or borrower can update"
+  on public.loan_extensions for update to authenticated
+  using (
+    exists (select 1 from public.loans l
+             where l.id = loan_id
+               and (l.lender_id = auth.uid() or l.borrower_id = auth.uid()))
+  )
+  with check (
+    exists (select 1 from public.loans l
+             where l.id = loan_id
+               and (l.lender_id = auth.uid() or l.borrower_id = auth.uid()))
   );
 
 -- Disputes: participants only.

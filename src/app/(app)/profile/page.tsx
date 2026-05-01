@@ -29,10 +29,14 @@ export default async function ProfilePage() {
           <div className="min-w-0 flex-1">
             <div className="text-lg font-semibold">{profile?.first_name}</div>
             <div className="text-sm text-gray-500">{profile?.suburb}</div>
-            <div className="flex items-center gap-2 mt-1">
-              <Stars value={profile?.reputation_score ?? 0} />
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <Stars value={Number(profile?.reputation_score ?? 0)} />
               <span className="text-xs text-gray-600">
-                {profile?.reputation_score?.toFixed(1) ?? '0.0'} · {profile?.karma_points ?? 0} karma
+                {Number(profile?.reputation_score ?? 0).toFixed(1)}
+                {' '}
+                ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+                {' · '}
+                {profile?.karma_points ?? 0} karma
               </span>
             </div>
           </div>

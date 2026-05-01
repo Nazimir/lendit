@@ -50,10 +50,14 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
           <div className="min-w-0 flex-1">
             <div className="text-lg font-semibold">{profile.first_name}</div>
             <div className="text-sm text-gray-500">{profile.suburb}</div>
-            <div className="flex items-center gap-2 mt-1">
-              <Stars value={profile.reputation_score} />
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <Stars value={Number(profile.reputation_score)} />
               <span className="text-xs text-gray-600">
-                {profile.reputation_score.toFixed(1)} · {profile.karma_points} karma
+                {Number(profile.reputation_score).toFixed(1)}
+                {' '}
+                ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
+                {' · '}
+                {profile.karma_points} karma
               </span>
             </div>
           </div>

@@ -5,8 +5,9 @@ import { PageHeader } from '@/components/PageHeader';
 import { Avatar } from '@/components/Avatar';
 import { LoanActions } from './LoanActions';
 import { ReviewBlock } from './ReviewBlock';
+import { Extensions } from './Extensions';
 import { dateLabel } from '@/lib/utils';
-import type { Loan, Item, Profile, Review } from '@/lib/types';
+import type { Loan, Item, Profile, Review, LoanExtension } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,14 +23,16 @@ export default async function LoanDetailPage({ params }: { params: { id: string 
   const isLender = loan.lender_id === user.id;
   const otherId = isLender ? loan.borrower_id : loan.lender_id;
 
-  const [{ data: item }, { data: other }, { data: reviewsRaw }] = await Promise.all([
+  const [{ data: item }, { data: other }, { data: reviewsRaw }, { data: extsRaw }] = await Promise.all([
     supabase.from('items').select('*').eq('id', loan.item_id).single(),
     supabase.from('profiles').select('*').eq('id', otherId).single(),
-    supabase.from('reviews').select('*').eq('loan_id', loan.id)
+    supabase.from('reviews').select('*').eq('loan_id', loan.id),
+    supabase.from('loan_extensions').select('*').eq('loan_id', loan.id).order('created_at', { ascending: false })
   ]);
 
   const reviews = (reviewsRaw || []) as Review[];
   const myReview = reviews.find(r => r.reviewer_id === user.id);
+  const extensions = (extsRaw || []) as LoanExtension[];
 
   return (
     <main>
@@ -74,6 +77,16 @@ export default async function LoanDetailPage({ params }: { params: { id: string 
         <div className="mt-5">
           <LoanActions loan={loan as Loan} isLender={isLender} />
         </div>
+
+        <Extensions
+          loanId={loan.id}
+          isLender={isLender}
+          isBorrower={!isLender}
+          extensionsAllowed={(item as Item)?.extensions_allowed ?? false}
+          loanStatus={loan.status}
+          dueAt={loan.due_at}
+          extensions={extensions}
+        />
 
         <PhotoGallery title="Handover photos" photos={(loan as Loan).handover_photos} />
         <PhotoGallery title="Return photos" photos={(loan as Loan).return_photos} />

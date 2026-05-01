@@ -3,6 +3,18 @@
 export type RequestStatus = 'pending' | 'accepted' | 'declined' | 'cancelled' | 'expired';
 export type LoanStatus = 'pending_handover' | 'active' | 'pending_return' | 'completed' | 'disputed';
 export type DisputeStatus = 'open' | 'resolved';
+export type ExtensionStatus = 'pending' | 'approved' | 'denied' | 'cancelled';
+
+export interface LoanExtension {
+  id: string;
+  loan_id: string;
+  requested_by: string;
+  additional_days: number;
+  reason: string;
+  status: ExtensionStatus;
+  decided_at: string | null;
+  created_at: string;
+}
 
 export interface Profile {
   id: string;
