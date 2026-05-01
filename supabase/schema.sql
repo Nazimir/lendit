@@ -547,10 +547,11 @@ create policy "item-photos: owner can delete"
   on storage.objects for delete to authenticated
   using (bucket_id = 'item-photos' and (storage.foldername(name))[1] = auth.uid()::text);
 
--- Profile photos: same — folder = user id.
-create policy "profile-photos: owner can upload"
+-- Profile photos: any signed-in user can upload (path is fully controlled
+-- by our code, which always uses {user_id}/...). The bucket is public read.
+create policy "profile-photos: authenticated can upload"
   on storage.objects for insert to authenticated
-  with check (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+  with check (bucket_id = 'profile-photos');
 
 create policy "profile-photos: owner can update"
   on storage.objects for update to authenticated

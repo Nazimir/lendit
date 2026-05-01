@@ -19,22 +19,49 @@ export function AvatarUploader({ profile, size = 64 }: { profile: Profile; size?
     e.target.value = '';
     if (!file) return;
     setBusy(true); setError(null);
-    try {
-      const sb = createClient();
-      const normalized = await normalizeImage(file);
-      const ext = (normalized.name.split('.').pop() || 'jpg').toLowerCase();
-      const path = `${profile.id}/avatar-${Date.now()}.${ext}`;
-      const { error: upErr } = await sb.storage.from('profile-photos').upload(path, normalized, { upsert: true });
-      if (upErr) throw upErr;
-      const { data: pub } = sb.storage.from('profile-photos').getPublicUrl(path);
-      const { error: updErr } = await sb.from('profiles').update({ photo_url: pub.publicUrl }).eq('id', profile.id);
-      if (updErr) throw updErr;
-      router.refresh();
-    } catch (e: any) {
-      setError(e?.message || 'Upload failed');
-    } finally {
+    const sb = createClient();
+
+    // Step 0: confirm we have a session
+    const { data: { user }, error: authErr } = await sb.auth.getUser();
+    if (authErr || !user) {
+      setError('Not signed in. Please refresh the page.');
       setBusy(false);
+      return;
     }
+
+    // Step 1: convert HEIC if needed
+    let normalized: File;
+    try {
+      normalized = await normalizeImage(file);
+    } catch (e: any) {
+      setError('Image conversion failed: ' + (e?.message || 'unknown'));
+      setBusy(false);
+      return;
+    }
+
+    // Step 2: storage upload
+    const ext = (normalized.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+    const { error: upErr } = await sb.storage
+      .from('profile-photos')
+      .upload(path, normalized, { upsert: true, contentType: normalized.type || 'image/jpeg' });
+    if (upErr) {
+      setError('Storage step failed: ' + upErr.message);
+      setBusy(false);
+      return;
+    }
+
+    // Step 3: write the URL onto the profile row
+    const { data: pub } = sb.storage.from('profile-photos').getPublicUrl(path);
+    const { error: updErr } = await sb.from('profiles').update({ photo_url: pub.publicUrl }).eq('id', user.id);
+    if (updErr) {
+      setError('Profile update step failed: ' + updErr.message);
+      setBusy(false);
+      return;
+    }
+
+    setBusy(false);
+    router.refresh();
   }
 
   return (
