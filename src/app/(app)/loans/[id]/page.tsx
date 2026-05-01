@@ -67,13 +67,16 @@ export default async function LoanDetailPage({ params }: { params: { id: string 
           </div>
         </div>
 
-        <Link href={`/messages/loan/${loan.id}`} className="btn-secondary w-full mb-4">Open message thread</Link>
+        <Link href={`/messages/${otherId}`} className="btn-secondary w-full mb-4">Open message thread</Link>
 
         <Timeline loan={loan as Loan} />
 
         <div className="mt-5">
           <LoanActions loan={loan as Loan} isLender={isLender} />
         </div>
+
+        <PhotoGallery title="Handover photos" photos={(loan as Loan).handover_photos} />
+        <PhotoGallery title="Return photos" photos={(loan as Loan).return_photos} />
 
         {loan.status === 'completed' && (
           <div className="mt-7">
@@ -82,6 +85,23 @@ export default async function LoanDetailPage({ params }: { params: { id: string 
         )}
       </div>
     </main>
+  );
+}
+
+function PhotoGallery({ title, photos }: { title: string; photos: string[] }) {
+  if (!photos || photos.length === 0) return null;
+  return (
+    <section className="mt-5">
+      <h3 className="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">{title}</h3>
+      <div className="grid grid-cols-3 gap-2">
+        {photos.map((url, i) => (
+          <a key={i} href={url} target="_blank" rel="noreferrer" className="block aspect-square rounded-2xl overflow-hidden bg-cream-200 hover:opacity-90 transition">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt="" className="w-full h-full object-cover" />
+          </a>
+        ))}
+      </div>
+    </section>
   );
 }
 

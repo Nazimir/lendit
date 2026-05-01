@@ -2,7 +2,6 @@
 
 export type RequestStatus = 'pending' | 'accepted' | 'declined' | 'cancelled' | 'expired';
 export type LoanStatus = 'pending_handover' | 'active' | 'pending_return' | 'completed' | 'disputed';
-export type ThreadKind = 'request' | 'loan';
 export type DisputeStatus = 'open' | 'resolved';
 
 export interface Profile {
@@ -29,6 +28,7 @@ export interface Item {
   max_loan_days: number;
   extensions_allowed: boolean;
   is_available: boolean;
+  expected_back_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -60,11 +60,11 @@ export interface Loan {
   request_id: string | null;
   status: LoanStatus;
   loan_period_days: number;
-  handover_photo_url: string | null;
+  handover_photos: string[];
   handover_at: string | null;
   due_at: string | null;
   return_initiated_at: string | null;
-  return_photo_url: string | null;
+  return_photos: string[];
   completed_at: string | null;
   extensions_used: number;
   created_at: string;
@@ -73,9 +73,8 @@ export interface Loan {
 
 export interface Message {
   id: string;
-  thread_kind: ThreadKind;
-  thread_id: string;
   sender_id: string;
+  recipient_id: string;
   body: string;
   created_at: string;
 }

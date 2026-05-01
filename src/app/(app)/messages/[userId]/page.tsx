@@ -1,0 +1,54 @@
+import Link from 'next/link';
+import { notFound, redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { PageHeader } from '@/components/PageHeader';
+import { Avatar } from '@/components/Avatar';
+import { Thread } from './Thread';
+import type { Profile, Message } from '@/lib/types';
+
+export const dynamic = 'force-dynamic';
+
+export default async function ConversationPage({ params }: { params: { userId: string } }) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+  if (user.id === params.userId) redirect('/messages');
+
+  const [{ data: other }, { data: msgs }] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', params.userId).single(),
+    supabase.from('messages').select('*')
+      .or(
+        `and(sender_id.eq.${user.id},recipient_id.eq.${params.userId}),` +
+        `and(sender_id.eq.${params.userId},recipient_id.eq.${user.id})`
+      )
+      .order('created_at')
+  ]);
+
+  if (!other) notFound();
+
+  return (
+    <main>
+      <PageHeader
+        title={(other as Profile).first_name}
+        back="/messages"
+        action={
+          <Link href={`/u/${params.userId}`} className="text-sm text-accent-600 font-medium">Profile</Link>
+        }
+      />
+      <div className="px-4 max-w-2xl mx-auto pb-8">
+        <Link href={`/u/${params.userId}`} className="card p-3 flex gap-3 items-center mb-4 hover:shadow-md transition">
+          <Avatar url={(other as Profile).photo_url} name={(other as Profile).first_name} size={40} />
+          <div className="min-w-0 flex-1">
+            <div className="font-medium">{(other as Profile).first_name}</div>
+            <div className="text-xs text-gray-500">{(other as Profile).suburb}</div>
+          </div>
+        </Link>
+        <Thread
+          meId={user.id}
+          otherId={params.userId}
+          initialMessages={(msgs || []) as Message[]}
+        />
+      </div>
+    </main>
+  );
+}

@@ -23,7 +23,7 @@ export function RequestForm({
           <span className="text-xs text-gray-500">Expires in {timeUntil(existing.expires_at)}</span>
         </div>
         <p className="text-sm text-gray-600 mt-3">You&apos;ve already asked. The lender will see your message.</p>
-        <Link href={`/messages/request/${existing.id}`} className="btn-secondary mt-3 w-full">Open thread</Link>
+        <Link href={`/messages/${ownerId}`} className="btn-secondary mt-3 w-full">Open thread</Link>
       </div>
     );
   }
@@ -43,12 +43,21 @@ export function RequestForm({
     const sb = createClient();
     const { data: { user } } = await sb.auth.getUser();
     if (!user) { setError('Not signed in.'); setBusy(false); return; }
-    const { data, error } = await sb.from('borrow_requests').insert({
+    const { error } = await sb.from('borrow_requests').insert({
       item_id: itemId, borrower_id: user.id, lender_id: ownerId, message
-    }).select('id').single();
+    });
+    if (error) { setError(error.message); setBusy(false); return; }
+
+    // Also drop the request message into the chat so the lender sees it in
+    // their inbox, with no extra step needed.
+    if (message.trim()) {
+      await sb.from('messages').insert({
+        sender_id: user.id, recipient_id: ownerId, body: message.trim()
+      });
+    }
+
     setBusy(false);
-    if (error) { setError(error.message); return; }
-    router.replace(`/messages/request/${data!.id}`);
+    router.replace(`/messages/${ownerId}`);
     router.refresh();
   }
 

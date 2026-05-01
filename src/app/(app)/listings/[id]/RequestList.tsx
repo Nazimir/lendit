@@ -61,7 +61,7 @@ export function RequestList({ requests, borrowers }: { requests: BorrowRequest[]
                       <button disabled={busy === r.id} onClick={() => update(r.id, 'declined')} className="btn-secondary py-2 px-4 text-sm">Decline</button>
                     </>
                   )}
-                  <Link href={`/messages/request/${r.id}`} className="btn-ghost py-2 px-4 text-sm">Message</Link>
+                  <Link href={`/messages/${r.borrower_id}`} className="btn-ghost py-2 px-4 text-sm">Message</Link>
                 </div>
               </div>
             </div>

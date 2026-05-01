@@ -1,21 +1,45 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/PageHeader';
 import { Avatar } from '@/components/Avatar';
 import { Stars } from '@/components/Stars';
-import type { Profile, Review } from '@/lib/types';
+import { ItemCard } from '@/components/ItemCard';
+import { dateLabel } from '@/lib/utils';
+import type { Profile, Review, Item, ItemWithOwner } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
 export default async function PublicProfilePage({ params }: { params: { id: string } }) {
   const supabase = createClient();
-  const { data: prof } = await supabase.from('profiles').select('*').eq('id', params.id).single();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const [{ data: prof }, { data: reviewsRaw }, { data: itemsRaw }] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', params.id).single(),
+    supabase.from('reviews').select('*').eq('reviewee_id', params.id)
+      .order('created_at', { ascending: false }).limit(20),
+    supabase.from('items').select('*').eq('owner_id', params.id)
+      .order('created_at', { ascending: false })
+  ]);
+
   if (!prof) notFound();
-  const { data: reviewsRaw } = await supabase
-    .from('reviews').select('*').eq('reviewee_id', params.id)
-    .order('created_at', { ascending: false }).limit(20);
-  const reviews = (reviewsRaw || []) as Review[];
   const profile = prof as Profile;
+  const reviews = (reviewsRaw || []) as Review[];
+  const items = (itemsRaw || []) as Item[];
+
+  const available = items.filter(i => i.is_available);
+  const onLoan = items.filter(i => !i.is_available);
+
+  // Build ItemWithOwner-shaped objects so we can reuse ItemCard
+  const wrap = (i: Item): ItemWithOwner => ({
+    ...i,
+    owner_first_name: profile.first_name,
+    owner_suburb: profile.suburb,
+    owner_photo_url: profile.photo_url,
+    owner_reputation: profile.reputation_score
+  });
+
+  const isMe = user?.id === params.id;
 
   return (
     <main>
@@ -33,7 +57,52 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
               </span>
             </div>
           </div>
+          {!isMe && user && (
+            <Link href={`/messages/${profile.id}`} className="btn-secondary text-sm py-2 px-3">Message</Link>
+          )}
         </div>
+
+        {available.length > 0 && (
+          <section className="mt-7">
+            <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+              Available now ({available.length})
+            </h2>
+            <div className="grid grid-cols-2 gap-3">
+              {available.map(it => <ItemCard key={it.id} item={wrap(it)} />)}
+            </div>
+          </section>
+        )}
+
+        {onLoan.length > 0 && (
+          <section className="mt-7">
+            <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+              On loan ({onLoan.length})
+            </h2>
+            <ul className="space-y-2">
+              {onLoan.map(it => (
+                <Link key={it.id} href={`/items/${it.id}`} className="card p-3 flex gap-3 items-center hover:shadow-md transition">
+                  <div className="w-14 h-14 rounded-2xl bg-cream-200 overflow-hidden shrink-0">
+                    {it.photos[0] && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={it.photos[0]} alt="" className="w-full h-full object-cover" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium line-clamp-1">{it.title}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {it.expected_back_at ? `Back ${dateLabel(it.expected_back_at)}` : 'On loan'}
+                    </div>
+                  </div>
+                  <span className="pill-rose">On loan</span>
+                </Link>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {available.length === 0 && onLoan.length === 0 && (
+          <p className="text-gray-500 text-sm mt-7">No listings yet.</p>
+        )}
 
         <h2 className="text-sm font-semibold text-gray-700 mt-7 mb-3 uppercase tracking-wide">Reviews</h2>
         {reviews.length === 0 ? (

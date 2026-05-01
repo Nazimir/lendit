@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { Avatar } from '@/components/Avatar';
 import { Stars } from '@/components/Stars';
 import { RequestForm } from './RequestForm';
+import { dateLabel } from '@/lib/utils';
 import type { Item, Profile, BorrowRequest } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -57,7 +58,30 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
           <span className="pill-muted">{item.category}</span>
           <span className="pill-muted">Up to {item.max_loan_days}d</span>
           {item.extensions_allowed && <span className="pill-accent">Extensions OK</span>}
+          {!item.is_available && <span className="pill-rose">On loan</span>}
         </div>
+
+        {!item.is_available && item.expected_back_at && (
+          <div className="card p-3 mt-3 flex items-center gap-3 bg-cream-50">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#577559" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 2" />
+            </svg>
+            <div className="text-sm">
+              <span className="text-gray-600">Expected back </span>
+              <span className="font-medium">{dateLabel(item.expected_back_at)}</span>
+              {owner && (
+                <>
+                  {' · '}
+                  <Link href={`/messages/${owner.id}`} className="text-accent-700 font-medium hover:underline">
+                    Message {owner.first_name}
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         <p className="text-gray-700 mt-4 whitespace-pre-wrap">{item.description}</p>
 
         {owner && (

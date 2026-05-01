@@ -63,6 +63,7 @@ create table public.items (
   max_loan_days int not null check (max_loan_days > 0),
   extensions_allowed boolean not null default false,
   is_available boolean not null default true,
+  expected_back_at timestamptz,                -- synced from active loan's due_at
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -117,11 +118,11 @@ create table public.loans (
   request_id uuid references public.borrow_requests(id) on delete set null,
   status loan_status not null default 'pending_handover',
   loan_period_days int not null,
-  handover_photo_url text,
+  handover_photos text[] not null default '{}',
   handover_at timestamptz,
   due_at timestamptz,
   return_initiated_at timestamptz,
-  return_photo_url text,
+  return_photos text[] not null default '{}',
   completed_at timestamptz,
   extensions_used int default 0,
   created_at timestamptz default now(),
@@ -135,20 +136,22 @@ create index loans_due_idx on public.loans (due_at);
 
 -- =====================================================================
 -- MESSAGES
--- Threads tied to either a borrow request or a loan.
+-- One single conversation thread per pair of users — no item/loan binding.
 -- =====================================================================
-create type thread_kind as enum ('request','loan');
-
 create table public.messages (
   id uuid primary key default uuid_generate_v4(),
-  thread_kind thread_kind not null,
-  thread_id uuid not null,           -- points at a borrow_requests.id or loans.id
   sender_id uuid not null references public.profiles(id) on delete cascade,
+  recipient_id uuid not null references public.profiles(id) on delete cascade,
   body text not null,
   created_at timestamptz default now()
 );
 
-create index messages_thread_idx on public.messages (thread_kind, thread_id, created_at);
+create index messages_pair_idx on public.messages (
+  least(sender_id, recipient_id),
+  greatest(sender_id, recipient_id),
+  created_at
+);
+create index messages_recipient_idx on public.messages (recipient_id, created_at desc);
 create index messages_sender_idx on public.messages (sender_id);
 
 -- =====================================================================
@@ -241,12 +244,6 @@ begin
     values (new.item_id, new.borrower_id, new.lender_id, new.id, coalesce(v_max_days,7), 'pending_handover')
     returning id into v_loan_id;
 
-    -- Migrate any messages attached to the request thread onto the loan thread,
-    -- so the conversation continues in one place after acceptance.
-    update public.messages
-       set thread_kind = 'loan', thread_id = v_loan_id
-     where thread_kind = 'request' and thread_id = new.id;
-
     -- Cancel sibling pending requests from same borrower for same item
     update public.borrow_requests
        set status = 'cancelled', updated_at = now()
@@ -258,6 +255,27 @@ begin
   return new;
 end;
 $$;
+
+-- Sync items.expected_back_at with the active loan's due_at, so anyone
+-- viewing an item that's currently out can see when it should be back.
+create or replace function public.sync_item_expected_back()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  if new.status = 'active' and new.due_at is not null then
+    update public.items set expected_back_at = new.due_at, updated_at = now() where id = new.item_id;
+  elsif new.status = 'completed' then
+    update public.items set expected_back_at = null, updated_at = now() where id = new.item_id;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger loans_sync_item_due
+  after update on public.loans
+  for each row execute function public.sync_item_expected_back();
 
 create trigger borrow_requests_on_accept
   after update on public.borrow_requests
@@ -304,11 +322,11 @@ create policy "profiles update self"
   on public.profiles for update
   to authenticated using (auth.uid() = id) with check (auth.uid() = id);
 
--- Items: anyone signed in can read available items; owner can read their own
--- regardless. Owner can insert/update/delete their own.
-create policy "items read"
+-- Items: any signed-in user can read any item (so on-loan items are still
+-- viewable on profiles and via direct links). Owner can insert/update/delete.
+create policy "items read all"
   on public.items for select
-  to authenticated using (is_available = true or owner_id = auth.uid());
+  to authenticated using (true);
 
 create policy "items insert own"
   on public.items for insert
@@ -347,35 +365,14 @@ create policy "loans update participants"
   to authenticated using (auth.uid() in (borrower_id, lender_id))
   with check (auth.uid() in (borrower_id, lender_id));
 
--- Messages: only thread participants can read or insert.
--- We check participation via the parent row.
-create policy "messages read"
+-- Messages: only sender or recipient can read; sender can insert.
+create policy "messages read pair"
   on public.messages for select
-  to authenticated using (
-    case thread_kind
-      when 'request' then exists (
-        select 1 from public.borrow_requests br
-        where br.id = thread_id and auth.uid() in (br.borrower_id, br.lender_id))
-      when 'loan' then exists (
-        select 1 from public.loans l
-        where l.id = thread_id and auth.uid() in (l.borrower_id, l.lender_id))
-    end
-  );
+  to authenticated using (auth.uid() in (sender_id, recipient_id));
 
-create policy "messages insert as participant"
+create policy "messages insert as sender"
   on public.messages for insert
-  to authenticated with check (
-    sender_id = auth.uid() and (
-      case thread_kind
-        when 'request' then exists (
-          select 1 from public.borrow_requests br
-          where br.id = thread_id and auth.uid() in (br.borrower_id, br.lender_id))
-        when 'loan' then exists (
-          select 1 from public.loans l
-          where l.id = thread_id and auth.uid() in (l.borrower_id, l.lender_id))
-      end
-    )
-  );
+  to authenticated with check (sender_id = auth.uid() and sender_id <> recipient_id);
 
 -- Reviews: anyone signed in can read; reviewer can insert only after the
 -- linked loan is completed and only as a participant.

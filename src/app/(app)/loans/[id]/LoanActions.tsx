@@ -13,30 +13,39 @@ export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean 
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function uploadPhoto(file: File, kind: 'handover' | 'return') {
+  async function uploadFiles(files: File[], kind: 'handover' | 'return'): Promise<string[]> {
     const sb = createClient();
-    const isHeic = /\.hei[cf]$/i.test(file.name) || /heic|heif/i.test(file.type);
-    setProgress(isHeic ? 'Converting & uploading photo…' : 'Uploading photo…');
-    const normalized = await normalizeImage(file);
-    const ext = (normalized.name.split('.').pop() || 'jpg').toLowerCase();
-    const path = `${loan.id}/${kind}-${Date.now()}.${ext}`;
-    const { error: upErr } = await sb.storage.from('loan-photos').upload(path, normalized, { upsert: false });
-    if (upErr) throw upErr;
-    const { data: pub } = sb.storage.from('loan-photos').getPublicUrl(path);
-    return pub.publicUrl;
+    const urls: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const isHeic = /\.hei[cf]$/i.test(file.name) || /heic|heif/i.test(file.type);
+      setProgress(
+        files.length > 1
+          ? `${isHeic ? 'Converting & uploading' : 'Uploading'} photo ${i + 1} of ${files.length}…`
+          : `${isHeic ? 'Converting & uploading photo' : 'Uploading photo'}…`
+      );
+      const normalized = await normalizeImage(file);
+      const ext = (normalized.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = `${loan.id}/${kind}-${Date.now()}-${i}.${ext}`;
+      const { error: upErr } = await sb.storage.from('loan-photos').upload(path, normalized, { upsert: false });
+      if (upErr) throw upErr;
+      const { data: pub } = sb.storage.from('loan-photos').getPublicUrl(path);
+      urls.push(pub.publicUrl);
+    }
+    return urls;
   }
 
-  async function confirmHandover(file: File) {
+  async function confirmHandover(files: File[]) {
     setBusy(true); setError(null);
     try {
-      const url = await uploadPhoto(file, 'handover');
+      const urls = await uploadFiles(files, 'handover');
       setProgress('Starting the loan clock…');
       const now = new Date();
       const due = new Date(now.getTime() + loan.loan_period_days * 86_400_000);
       const sb = createClient();
       const { error } = await sb.from('loans').update({
         status: 'active',
-        handover_photo_url: url,
+        handover_photos: urls,
         handover_at: now.toISOString(),
         due_at: due.toISOString()
       }).eq('id', loan.id);
@@ -59,15 +68,15 @@ export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean 
     router.refresh();
   }
 
-  async function confirmReturn(file: File) {
+  async function confirmReturn(files: File[]) {
     setBusy(true); setError(null);
     try {
-      const url = await uploadPhoto(file, 'return');
+      const urls = await uploadFiles(files, 'return');
       setProgress('Completing the loan…');
       const sb = createClient();
       const { error } = await sb.from('loans').update({
         status: 'completed',
-        return_photo_url: url,
+        return_photos: urls,
         completed_at: new Date().toISOString()
       }).eq('id', loan.id);
       if (error) throw error;
@@ -81,10 +90,10 @@ export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean 
 
   if (loan.status === 'pending_handover' && isLender) {
     body = (
-      <PhotoButton
-        label="Confirm handover with photo"
-        helper="Take or upload a photo of the item as you hand it over. This starts the loan clock."
-        onFile={confirmHandover}
+      <MultiPhotoPicker
+        label="Confirm handover with photo(s)"
+        helper="Take or upload one or more photos as you hand the item over. Add extras if you want to document any pre-existing damage. This starts the loan clock."
+        onFiles={confirmHandover}
         disabled={busy}
       />
     );
@@ -100,10 +109,10 @@ export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean 
     body = <Hint>Loan is active. The borrower can mark it returned when ready.</Hint>;
   } else if (loan.status === 'pending_return' && isLender) {
     body = (
-      <PhotoButton
-        label="Confirm return with photo"
-        helper="Photo of the item back in your possession. This completes the loan."
-        onFile={confirmReturn}
+      <MultiPhotoPicker
+        label="Confirm return with photo(s)"
+        helper="Photo(s) of the item back in your possession. Add extras to document any new damage if needed. This completes the loan."
+        onFiles={confirmReturn}
         disabled={busy}
       />
     );
@@ -122,10 +131,12 @@ export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean 
   );
 }
 
-function PhotoButton({ label, helper, onFile, disabled }: {
-  label: string; helper: string; onFile: (f: File) => void; disabled?: boolean;
+function MultiPhotoPicker({ label, helper, onFiles, disabled }: {
+  label: string; helper: string; onFiles: (files: File[]) => void; disabled?: boolean;
 }) {
-  const id = 'photo-' + label.replace(/\s+/g, '-');
+  const [selected, setSelected] = useState<File[]>([]);
+  const id = 'photos-' + label.replace(/\s+/g, '-');
+
   return (
     <div>
       <p className="text-sm text-gray-600 mb-3">{helper}</p>
@@ -133,13 +144,49 @@ function PhotoButton({ label, helper, onFile, disabled }: {
         id={id}
         type="file"
         accept="image/*"
+        multiple
         capture="environment"
         className="hidden"
-        onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); }}
+        onChange={e => {
+          const list = Array.from(e.target.files || []);
+          setSelected(prev => [...prev, ...list]);
+          e.target.value = ''; // allow picking the same file again later
+        }}
       />
-      <label htmlFor={id} className={'btn-primary w-full cursor-pointer' + (disabled ? ' opacity-50 pointer-events-none' : '')}>
-        {disabled ? 'Working…' : label}
-      </label>
+      {selected.length > 0 && (
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          {selected.map((f, i) => (
+            <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-cream-200">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setSelected(prev => prev.filter((_, idx) => idx !== i))}
+                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white text-xs flex items-center justify-center"
+                aria-label="Remove"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-2">
+        <label
+          htmlFor={id}
+          className={'btn-secondary flex-1 cursor-pointer' + (disabled ? ' opacity-50 pointer-events-none' : '')}
+        >
+          {selected.length === 0 ? 'Choose photo(s)' : 'Add more'}
+        </label>
+        <button
+          type="button"
+          disabled={disabled || selected.length === 0}
+          onClick={() => onFiles(selected)}
+          className="btn-primary flex-1 disabled:opacity-50"
+        >
+          {disabled ? 'Working…' : label}
+        </button>
+      </div>
     </div>
   );
 }
