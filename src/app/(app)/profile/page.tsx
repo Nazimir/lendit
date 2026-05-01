@@ -46,7 +46,7 @@ export default async function ProfilePage() {
           <ProfileEditor profile={profile} />
         </div>
 
-        <h2 className="text-sm font-semibold text-gray-700 mt-7 mb-3 uppercase tracking-wide">Reviews</h2>
+        <h2 className="font-mono text-[10px] font-semibold text-gray-700 mt-7 mb-3 uppercase tracking-wider">Reviews</h2>
         {reviews.length === 0 ? (
           <p className="text-gray-500 text-sm">No reviews yet.</p>
         ) : (

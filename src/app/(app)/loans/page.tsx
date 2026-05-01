@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/PageHeader';
 import { dateLabel } from '@/lib/utils';
+import { paletteForCategory } from '@/lib/categoryStyle';
 import type { Loan, Item } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -39,7 +40,7 @@ export default async function LoansPage() {
           <>
             {active.length > 0 && (
               <section className="mt-2">
-                <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Active</h2>
+                <h2 className="font-mono text-[10px] font-semibold text-gray-700 mb-3 uppercase tracking-wider">Active</h2>
                 <ul className="space-y-3">
                   {active.map(l => <LoanRow key={l.id} loan={l} item={items.find(i => i.id === l.item_id)} userId={user.id} />)}
                 </ul>
@@ -47,7 +48,7 @@ export default async function LoansPage() {
             )}
             {past.length > 0 && (
               <section className="mt-7">
-                <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Past</h2>
+                <h2 className="font-mono text-[10px] font-semibold text-gray-700 mb-3 uppercase tracking-wider">Past</h2>
                 <ul className="space-y-3">
                   {past.map(l => <LoanRow key={l.id} loan={l} item={items.find(i => i.id === l.item_id)} userId={user.id} />)}
                 </ul>
@@ -62,33 +63,48 @@ export default async function LoansPage() {
 
 function LoanRow({ loan, item, userId }: { loan: Loan; item: Item | undefined; userId: string }) {
   const isLender = loan.lender_id === userId;
+  const palette = paletteForCategory(item?.category);
   return (
     <li>
-      <Link href={`/loans/${loan.id}`} className="card p-3 flex items-center gap-3 hover:shadow-md transition">
-        <div className="w-14 h-14 rounded-2xl bg-cream-200 overflow-hidden shrink-0">
+      <Link
+        href={`/loans/${loan.id}`}
+        className="rounded-3xl p-3 flex items-center gap-3 border-2 shadow-soft hover:-translate-y-0.5 transition block"
+        style={{ background: palette.bg, borderColor: palette.accent, color: palette.ink }}
+      >
+        <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 border" style={{ borderColor: palette.accent }}>
           {item?.photos?.[0] && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={item.photos[0]} alt="" className="w-full h-full object-cover" />
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="font-medium line-clamp-1">{item?.title || 'Item'}</div>
-          <div className="text-xs text-gray-500 mt-0.5">
+          <div className="font-display text-lg leading-tight line-clamp-1">{item?.title || 'Item'}</div>
+          <div className="font-mono text-[10px] uppercase tracking-wider mt-0.5 opacity-70">
             {isLender ? 'Lending' : 'Borrowing'}
             {loan.due_at && loan.status !== 'completed' && <> · Due {dateLabel(loan.due_at)}</>}
             {loan.completed_at && <> · Completed {dateLabel(loan.completed_at)}</>}
           </div>
         </div>
-        <span className={pillFor(loan.status)}>{loan.status.replace('_', ' ')}</span>
+        <StatusPill status={loan.status} palette={palette} />
       </Link>
     </li>
   );
 }
 
-function pillFor(status: string) {
-  if (status === 'active') return 'pill-accent';
-  if (status === 'pending_handover' || status === 'pending_return') return 'pill-butter';
-  if (status === 'completed') return 'pill-muted';
-  if (status === 'disputed') return 'pill-rose';
-  return 'pill-muted';
+function StatusPill({ status, palette }: { status: string; palette: { accent: string; pill: string; ink: string } }) {
+  let bg = palette.pill;
+  let fg = palette.ink;
+  let text = status.replace('_', ' ');
+  if (status === 'active') { bg = palette.accent; fg = '#fff'; }
+  if (status === 'pending_handover' || status === 'pending_return') { bg = '#F6D77A'; fg = '#1F2A21'; }
+  if (status === 'completed') { bg = '#E5E1D6'; fg = '#5F4E33'; }
+  if (status === 'disputed') { bg = '#F8B4C8'; fg = '#1F2A21'; }
+  return (
+    <span
+      className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-full shrink-0"
+      style={{ background: bg, color: fg }}
+    >
+      {text}
+    </span>
+  );
 }

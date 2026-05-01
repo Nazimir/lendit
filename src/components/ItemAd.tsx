@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Avatar } from '@/components/Avatar';
 import { Stars } from '@/components/Stars';
+import { Lightbox } from '@/components/Lightbox';
 import { dateLabel } from '@/lib/utils';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { QUIRK_QUESTIONS } from '@/lib/types';
@@ -67,16 +68,14 @@ export function ItemAd({
       {/* PHOTO */}
       {item.photos[0] && (
         <div className="mx-5 mb-4 border-2 rounded-2xl overflow-hidden" style={{ borderColor: palette.accent }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={item.photos[0]} alt="" className="w-full aspect-[4/3] object-cover" />
+          <Lightbox src={item.photos[0]} alt={item.title} className="w-full aspect-[4/3] object-cover" />
         </div>
       )}
       {item.photos.length > 1 && (
         <div className="mx-5 mb-4 grid grid-cols-4 gap-2">
           {item.photos.slice(1).map((p: string, i: number) => (
             <div key={i} className="border rounded-xl overflow-hidden" style={{ borderColor: palette.accent }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p} alt="" className="w-full aspect-square object-cover" />
+              <Lightbox src={p} alt={item.title} className="w-full aspect-square object-cover" />
             </div>
           ))}
         </div>

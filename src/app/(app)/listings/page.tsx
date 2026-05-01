@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/PageHeader';
+import { paletteForCategory } from '@/lib/categoryStyle';
 import type { Item, BorrowRequest } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -44,32 +45,41 @@ export default async function MyListingsPage() {
           </div>
         ) : (
           <ul className="space-y-3">
-            {itemList.map(it => (
-              <li key={it.id}>
-                <Link href={`/listings/${it.id}`} className="card p-3 flex gap-3 items-center hover:shadow-md transition">
-                  <div className="w-16 h-16 rounded-2xl bg-cream-200 overflow-hidden shrink-0">
-                    {it.photos[0] && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={it.photos[0]} alt="" className="w-full h-full object-cover" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium line-clamp-1">{it.title}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      {it.category} · {it.max_loan_days}d max
-                    </div>
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {it.is_available
-                        ? <span className="pill-accent">Available</span>
-                        : <span className="pill-rose">On loan</span>}
-                      {pendingByItem[it.id] > 0 && (
-                        <span className="pill-butter">{pendingByItem[it.id]} pending request{pendingByItem[it.id] > 1 ? 's' : ''}</span>
+            {itemList.map(it => {
+              const palette = paletteForCategory(it.category);
+              return (
+                <li key={it.id}>
+                  <Link
+                    href={`/listings/${it.id}`}
+                    className="rounded-3xl p-3 flex gap-3 items-center border-2 shadow-soft hover:-translate-y-0.5 transition block"
+                    style={{ background: palette.bg, borderColor: palette.accent, color: palette.ink }}
+                  >
+                    <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 border" style={{ borderColor: palette.accent }}>
+                      {it.photos[0] && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={it.photos[0]} alt="" className="w-full h-full object-cover" />
                       )}
                     </div>
-                  </div>
-                </Link>
-              </li>
-            ))}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-display text-lg leading-tight line-clamp-1">{it.title}</div>
+                      <div className="font-mono text-[10px] uppercase tracking-wider mt-0.5 opacity-70">
+                        {it.category} · {it.max_loan_days}d max
+                      </div>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {it.is_available
+                          ? <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: palette.accent, color: '#fff' }}>Available</span>
+                          : <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-soft text-accent-900">On loan</span>}
+                        {pendingByItem[it.id] > 0 && (
+                          <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-butter-soft text-accent-900">
+                            {pendingByItem[it.id]} pending
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

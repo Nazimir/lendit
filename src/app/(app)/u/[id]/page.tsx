@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { Avatar } from '@/components/Avatar';
 import { Stars } from '@/components/Stars';
 import { ItemCard } from '@/components/ItemCard';
+import { paletteForCategory } from '@/lib/categoryStyle';
 import { dateLabel } from '@/lib/utils';
 import type { Profile, Review, Item, ItemWithOwner } from '@/lib/types';
 
@@ -68,7 +69,7 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
 
         {available.length > 0 && (
           <section className="mt-7">
-            <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+            <h2 className="font-mono text-[10px] font-semibold text-gray-700 mb-3 uppercase tracking-wider">
               Available now ({available.length})
             </h2>
             <div className="grid grid-cols-2 gap-3">
@@ -79,27 +80,37 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
 
         {onLoan.length > 0 && (
           <section className="mt-7">
-            <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+            <h2 className="font-mono text-[10px] font-semibold text-gray-700 mb-3 uppercase tracking-wider">
               On loan ({onLoan.length})
             </h2>
             <ul className="space-y-2">
-              {onLoan.map(it => (
-                <Link key={it.id} href={`/items/${it.id}`} className="card p-3 flex gap-3 items-center hover:shadow-md transition">
-                  <div className="w-14 h-14 rounded-2xl bg-cream-200 overflow-hidden shrink-0">
-                    {it.photos[0] && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={it.photos[0]} alt="" className="w-full h-full object-cover" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium line-clamp-1">{it.title}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      {it.expected_back_at ? `Back ${dateLabel(it.expected_back_at)}` : 'On loan'}
+              {onLoan.map(it => {
+                const palette = paletteForCategory(it.category);
+                return (
+                  <Link
+                    key={it.id}
+                    href={`/items/${it.id}`}
+                    className="rounded-3xl p-3 flex gap-3 items-center border-2 shadow-soft hover:-translate-y-0.5 transition block"
+                    style={{ background: palette.bg, borderColor: palette.accent, color: palette.ink }}
+                  >
+                    <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 border" style={{ borderColor: palette.accent }}>
+                      {it.photos[0] && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={it.photos[0]} alt="" className="w-full h-full object-cover" />
+                      )}
                     </div>
-                  </div>
-                  <span className="pill-rose">On loan</span>
-                </Link>
-              ))}
+                    <div className="min-w-0 flex-1">
+                      <div className="font-display text-lg leading-tight line-clamp-1">{it.title}</div>
+                      <div className="font-mono text-[10px] uppercase tracking-wider mt-0.5 opacity-70">
+                        {it.expected_back_at ? `Back ${dateLabel(it.expected_back_at)}` : 'On loan'}
+                      </div>
+                    </div>
+                    <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-rose-soft text-accent-900 shrink-0">
+                      On loan
+                    </span>
+                  </Link>
+                );
+              })}
             </ul>
           </section>
         )}
@@ -108,7 +119,7 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
           <p className="text-gray-500 text-sm mt-7">No listings yet.</p>
         )}
 
-        <h2 className="text-sm font-semibold text-gray-700 mt-7 mb-3 uppercase tracking-wide">Reviews</h2>
+        <h2 className="font-mono text-[10px] font-semibold text-gray-700 mt-7 mb-3 uppercase tracking-wider">Reviews</h2>
         {reviews.length === 0 ? (
           <p className="text-gray-500 text-sm">No reviews yet.</p>
         ) : (

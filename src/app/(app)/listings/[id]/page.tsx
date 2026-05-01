@@ -1,7 +1,7 @@
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/PageHeader';
+import { ItemAd } from '@/components/ItemAd';
 import { ListingActions } from './ListingActions';
 import { RequestList } from './RequestList';
 import type { Item, BorrowRequest, Profile } from '@/lib/types';
@@ -33,28 +33,15 @@ export default async function MyListingDetail({ params }: { params: { id: string
 
   return (
     <main>
-      <PageHeader title="Listing" back="/listings" />
+      <PageHeader title="Your listing" back="/listings" />
       <div className="px-4 max-w-2xl mx-auto pb-8">
-        {item.photos[0] && (
-          <div className="card overflow-hidden mb-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={item.photos[0]} alt="" className="w-full aspect-[4/3] object-cover" />
-          </div>
-        )}
-        <h2 className="text-xl font-semibold">{item.title}</h2>
-        <p className="text-gray-600 mt-1 whitespace-pre-wrap">{item.description}</p>
-        <div className="flex flex-wrap gap-2 mt-3">
-          <span className="pill-muted">{item.category}</span>
-          <span className="pill-muted">Up to {item.max_loan_days}d</span>
-          {item.extensions_allowed && <span className="pill-accent">Extensions OK</span>}
-          {item.is_available ? <span className="pill-accent">Available</span> : <span className="pill-rose">On loan</span>}
-        </div>
+        <ItemAd item={item as Item} owner={null} ownerView />
 
-        <div className="mt-6">
+        <div className="mt-5">
           <ListingActions item={item as Item} />
         </div>
 
-        <h3 className="font-semibold mt-8 mb-3">Borrow requests</h3>
+        <h3 className="font-display text-2xl mt-8 mb-3">Borrow requests</h3>
         <RequestList requests={reqList} borrowers={borrowers} />
       </div>
     </main>

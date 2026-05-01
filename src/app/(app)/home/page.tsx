@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { ItemCard } from '@/components/ItemCard';
 import { SearchBar } from './SearchBar';
+import { paletteForCategory } from '@/lib/categoryStyle';
 import type { ItemWithOwner, Loan, Item } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -65,28 +66,39 @@ export default async function HomePage({ searchParams }: { searchParams: { q?: s
 
       {outLoans.length > 0 && (
         <section className="mt-7">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Your items currently out</h2>
+          <h2 className="font-mono text-[10px] font-semibold text-gray-700 mb-3 uppercase tracking-wider">Your items currently out</h2>
           <div className="space-y-2">
             {outLoans.map(l => {
               const item = outItems.find(i => i.id === l.item_id);
               if (!item) return null;
+              const palette = paletteForCategory(item.category);
               return (
-                <Link key={l.id} href={`/loans/${l.id}`} className="card p-3 flex items-center gap-3 hover:shadow-md transition">
-                  <div className="w-14 h-14 rounded-2xl bg-cream-200 overflow-hidden shrink-0">
+                <Link
+                  key={l.id}
+                  href={`/loans/${l.id}`}
+                  className="rounded-3xl p-3 flex items-center gap-3 border-2 shadow-soft hover:-translate-y-0.5 transition block"
+                  style={{ background: palette.bg, borderColor: palette.accent, color: palette.ink }}
+                >
+                  <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 border" style={{ borderColor: palette.accent }}>
                     {item.photos?.[0] && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={item.photos[0]} alt="" className="w-full h-full object-cover" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="font-medium line-clamp-1">{item.title}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">
+                    <div className="font-display text-lg leading-tight line-clamp-1">{item.title}</div>
+                    <div className="font-mono text-[10px] uppercase tracking-wider mt-0.5 opacity-70">
                       {l.status === 'pending_handover' && 'Awaiting handover'}
                       {l.status === 'active' && (l.due_at ? `Due ${new Date(l.due_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : 'On loan')}
                       {l.status === 'pending_return' && 'Return in progress'}
                     </div>
                   </div>
-                  <span className="pill-accent">{l.status.replace('_', ' ')}</span>
+                  <span
+                    className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-full shrink-0"
+                    style={{ background: palette.accent, color: '#fff' }}
+                  >
+                    {l.status.replace('_', ' ')}
+                  </span>
                 </Link>
               );
             })}
@@ -95,7 +107,7 @@ export default async function HomePage({ searchParams }: { searchParams: { q?: s
       )}
 
       <section className="mt-7">
-        <h2 className="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">
+        <h2 className="font-mono text-[10px] font-semibold text-gray-700 mb-3 uppercase tracking-wider">
           {q ? `Results for "${q}"` : me?.suburb ? `Available near ${me.suburb}` : 'Available now'}
         </h2>
         {items.length === 0 ? (
