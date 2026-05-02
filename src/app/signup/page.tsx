@@ -15,6 +15,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +23,10 @@ export default function SignupPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!agreed) {
+      setError('Please confirm you are 18 or older and agree to the Terms.');
+      return;
+    }
     setBusy(true); setError(null); setInfo(null);
     const supabase = createClient();
 
@@ -54,6 +59,17 @@ export default function SignupPage() {
         const { data: pub } = supabase.storage.from('profile-photos').getPublicUrl(path);
         await supabase.from('profiles').update({ photo_url: pub.publicUrl }).eq('id', userId);
       }
+    }
+
+    // Stamp consent on the profile row (created by the on_auth_user_created trigger)
+    if (userId) {
+      await supabase
+        .from('profiles')
+        .update({
+          tos_accepted_at: new Date().toISOString(),
+          is_adult_attested: true
+        })
+        .eq('id', userId);
     }
 
     if (data.session) {
@@ -100,6 +116,20 @@ export default function SignupPage() {
             <input className="input" type="password" autoComplete="new-password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} />
             <p className="text-xs text-gray-500 mt-1">8+ characters.</p>
           </div>
+          <label className="flex items-start gap-3 card p-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={e => setAgreed(e.target.checked)}
+              className="h-5 w-5 accent-accent-400 mt-0.5 shrink-0"
+            />
+            <span className="text-xs text-gray-700">
+              I&apos;m 18 or older and I agree to LendIt&apos;s{' '}
+              <Link href="/terms" target="_blank" className="text-accent-700 underline">Terms of Service</Link>
+              {' '}and{' '}
+              <Link href="/privacy" target="_blank" className="text-accent-700 underline">Privacy Policy</Link>.
+            </span>
+          </label>
           {error && <p className="text-sm text-red-600">{error}</p>}
           {info && <p className="text-sm text-accent-700">{info}</p>}
           {progress && <ProgressBanner message={progress} />}

@@ -42,6 +42,10 @@ export interface Profile {
   reputation_score: number;
   karma_points: number;
   social_linked: boolean;
+  tos_accepted_at: string | null;
+  is_adult_attested: boolean;
+  is_deleted: boolean;
+  deleted_at: string | null;
   created_at: string;
   updated_at: string;
 }

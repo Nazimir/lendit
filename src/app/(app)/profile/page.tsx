@@ -4,6 +4,7 @@ import { Stars } from '@/components/Stars';
 import { ProfileEditor } from './ProfileEditor';
 import { SignOut } from './SignOut';
 import { AvatarUploader } from './AvatarUploader';
+import { DeleteAccount } from './DeleteAccount';
 import type { Profile, Review } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -44,6 +45,10 @@ export default async function ProfilePage() {
 
         <div className="mt-5">
           <ProfileEditor profile={profile} />
+        </div>
+
+        <div className="mt-3 text-center">
+          <DeleteAccount />
         </div>
 
         <h2 className="font-mono text-[10px] font-semibold text-gray-700 mt-7 mb-3 uppercase tracking-wider">Reviews</h2>

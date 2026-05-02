@@ -20,6 +20,10 @@ create table public.profiles (
   reputation_score numeric(3,2) default 0.00,  -- avg of review stars, 0–5
   karma_points int default 0,                  -- +1 per completed loan as lender
   social_linked boolean default false,         -- phase 2
+  tos_accepted_at timestamptz,                 -- when ToS was accepted at signup
+  is_adult_attested boolean not null default false,
+  is_deleted boolean not null default false,   -- soft-delete flag
+  deleted_at timestamptz,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
