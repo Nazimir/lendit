@@ -46,8 +46,36 @@ export interface Profile {
   is_adult_attested: boolean;
   is_deleted: boolean;
   deleted_at: string | null;
+  phone_verified: boolean;
+  is_banned: boolean;
+  banned_at: string | null;
+  banned_reason: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export type ReportTargetKind = 'profile' | 'item' | 'message' | 'loan';
+export type ReportStatus = 'open' | 'dismissed' | 'actioned';
+
+export interface Report {
+  id: string;
+  reporter_id: string;
+  target_kind: ReportTargetKind;
+  target_id: string;
+  reason: string;
+  detail: string;
+  status: ReportStatus;
+  resolution_note: string | null;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  created_at: string;
+}
+
+export interface Block {
+  id: string;
+  blocker_id: string;
+  blocked_id: string;
+  created_at: string;
 }
 
 export interface Quirks {

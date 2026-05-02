@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/PageHeader';
 import { Avatar } from '@/components/Avatar';
+import { SafetyMenu } from '@/components/SafetyMenu';
 import { Thread } from './Thread';
 import type { Profile, Message, Item } from '@/lib/types';
 
@@ -42,7 +43,15 @@ export default async function ConversationPage({ params }: { params: { userId: s
         title={(other as Profile).first_name}
         back="/messages"
         action={
-          <Link href={`/u/${params.userId}`} className="text-sm text-accent-600 font-medium">Profile</Link>
+          <div className="flex items-center gap-1">
+            <Link href={`/u/${params.userId}`} className="text-sm text-accent-600 font-medium">Profile</Link>
+            <SafetyMenu
+              targetKind="profile"
+              targetId={params.userId}
+              blockableUserId={params.userId}
+              context="this user"
+            />
+          </div>
         }
       />
       <div className="px-4 max-w-2xl mx-auto pb-8">

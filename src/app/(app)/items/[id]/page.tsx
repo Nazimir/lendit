@@ -2,6 +2,8 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/PageHeader';
 import { ItemAd } from '@/components/ItemAd';
+import { VerifyGate } from '@/components/VerifyGate';
+import { SafetyMenu } from '@/components/SafetyMenu';
 import { RequestForm } from './RequestForm';
 import type { Item, Profile, BorrowRequest, Loan } from '@/lib/types';
 
@@ -17,7 +19,10 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
 
   if ((item as Item).owner_id === user.id) redirect(`/listings/${params.id}`);
 
-  const { data: owner } = await supabase.from('profiles').select('*').eq('id', (item as Item).owner_id).single();
+  const [{ data: owner }, { data: me }] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', (item as Item).owner_id).single(),
+    supabase.from('profiles').select('phone_verified').eq('id', user.id).single()
+  ]);
 
   // My most recent request for this item, if any (regular or chain)
   const { data: mine } = await supabase
@@ -39,21 +44,29 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
 
   return (
     <main>
-      <PageHeader title="Listing" back="/home" />
+      <PageHeader
+        title="Listing"
+        back="/home"
+        action={<SafetyMenu targetKind="item" targetId={item.id} context="this listing" />}
+      />
       <div className="px-4 max-w-2xl mx-auto pb-8">
         <ItemAd item={item as Item} owner={(owner as Profile) || null} />
 
         <div className="mt-6">
-          <RequestForm
-            itemId={item.id}
-            ownerId={(item as Item).owner_id}
-            existing={existing}
-            available={item.is_available}
-            chainHandoffsAllowed={(item as Item).chain_handoffs_allowed}
-            activeLoanId={activeLoan?.id || null}
-            activeBorrowerId={activeLoan?.borrower_id || null}
-            currentUserId={user.id}
-          />
+          {!me?.phone_verified ? (
+            <VerifyGate action="send a borrow request" next={`/items/${params.id}`} />
+          ) : (
+            <RequestForm
+              itemId={item.id}
+              ownerId={(item as Item).owner_id}
+              existing={existing}
+              available={item.is_available}
+              chainHandoffsAllowed={(item as Item).chain_handoffs_allowed}
+              activeLoanId={activeLoan?.id || null}
+              activeBorrowerId={activeLoan?.borrower_id || null}
+              currentUserId={user.id}
+            />
+          )}
         </div>
       </div>
     </main>

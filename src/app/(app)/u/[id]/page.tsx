@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { Avatar } from '@/components/Avatar';
 import { Stars } from '@/components/Stars';
 import { ItemCard } from '@/components/ItemCard';
+import { SafetyMenu } from '@/components/SafetyMenu';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { dateLabel } from '@/lib/utils';
 import type { Profile, Review, Item, ItemWithOwner } from '@/lib/types';
@@ -15,18 +16,23 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: prof }, { data: reviewsRaw }, { data: itemsRaw }] = await Promise.all([
+  const [{ data: prof }, { data: reviewsRaw }, { data: itemsRaw }, { data: blockRow }] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', params.id).single(),
     supabase.from('reviews').select('*').eq('reviewee_id', params.id)
       .order('created_at', { ascending: false }).limit(20),
     supabase.from('items').select('*').eq('owner_id', params.id)
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: false }),
+    user
+      ? supabase.from('blocks').select('id')
+          .eq('blocker_id', user.id).eq('blocked_id', params.id).maybeSingle()
+      : Promise.resolve({ data: null })
   ]);
 
   if (!prof) notFound();
   const profile = prof as Profile;
   const reviews = (reviewsRaw || []) as Review[];
   const items = (itemsRaw || []) as Item[];
+  const isBlocked = !!blockRow;
 
   const available = items.filter(i => i.is_available);
   const onLoan = items.filter(i => !i.is_available);
@@ -49,7 +55,17 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
         <div className="card p-5 flex items-center gap-4">
           <Avatar url={profile.photo_url} name={profile.first_name} size={72} />
           <div className="min-w-0 flex-1">
-            <div className="text-lg font-semibold">{profile.first_name}</div>
+            <div className="text-lg font-semibold flex items-center gap-2">
+              {profile.first_name}
+              {profile.phone_verified && (
+                <span title="Phone verified" className="inline-flex items-center" aria-label="Phone verified">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#577559">
+                    <path d="M12 2l2.4 2.4 3.4-.4.6 3.4 3 1.6-1.6 3 1.6 3-3 1.6-.6 3.4-3.4-.4L12 22l-2.4-2.4-3.4.4-.6-3.4-3-1.6 1.6-3-1.6-3 3-1.6.6-3.4 3.4.4L12 2z" />
+                    <path d="M9 12l2 2 4-4" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+              )}
+            </div>
             <div className="text-sm text-gray-500">{profile.suburb}</div>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               <Stars value={Number(profile.reputation_score)} />
@@ -63,7 +79,16 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
             </div>
           </div>
           {!isMe && user && (
-            <Link href={`/messages/${profile.id}`} className="btn-secondary text-sm py-2 px-3">Message</Link>
+            <div className="flex items-center gap-1">
+              <Link href={`/messages/${profile.id}`} className="btn-secondary text-sm py-2 px-3">Message</Link>
+              <SafetyMenu
+                targetKind="profile"
+                targetId={profile.id}
+                blockableUserId={profile.id}
+                alreadyBlocked={isBlocked}
+                context="this user"
+              />
+            </div>
           )}
         </div>
 
