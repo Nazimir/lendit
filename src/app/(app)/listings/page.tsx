@@ -33,13 +33,14 @@ export default async function MyListingsPage() {
 
   return (
     <main>
-      <PageHeader
-        title="My listings"
-        action={<Link href="/listings/new" className="btn-primary text-sm py-2 px-4">+ New</Link>}
-      />
+      <PageHeader title="My listings" />
       <div className="px-4 max-w-2xl mx-auto pb-8">
+        <div className="flex gap-2 mb-4">
+          <Link href="/listings/new" className="btn-primary flex-1 text-center">+ New listing</Link>
+          <Link href="/lend" className="btn-secondary flex-1 text-center">Lend in person</Link>
+        </div>
         {itemList.length === 0 ? (
-          <div className="card p-8 text-center mt-8">
+          <div className="card p-8 text-center mt-2">
             <p className="text-gray-600 mb-4">You haven&apos;t listed anything yet.</p>
             <Link href="/listings/new" className="btn-primary">List your first item</Link>
           </div>

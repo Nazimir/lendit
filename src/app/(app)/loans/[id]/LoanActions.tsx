@@ -68,6 +68,31 @@ export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean 
     router.refresh();
   }
 
+  async function recallItem() {
+    if (!confirm('Recall this item? The borrower will be notified that you need it back. They\'ll arrange to return it as soon as possible.')) return;
+    setBusy(true); setError(null);
+    setProgress('Sending recall…');
+    const sb = createClient();
+    const { error } = await sb.from('loans').update({
+      status: 'pending_return',
+      return_initiated_at: new Date().toISOString()
+    }).eq('id', loan.id);
+    if (error) { setError(error.message); setBusy(false); setProgress(null); return; }
+
+    // Drop a chat message so the borrower sees the recall in their inbox.
+    const { data: { user } } = await sb.auth.getUser();
+    if (user) {
+      await sb.from('messages').insert({
+        sender_id: user.id,
+        recipient_id: loan.borrower_id,
+        body: 'I need this item back — can we arrange the return as soon as possible?',
+        context_item_id: loan.item_id
+      });
+    }
+    setBusy(false); setProgress(null);
+    router.refresh();
+  }
+
   async function confirmReturn(files: File[]) {
     setBusy(true); setError(null);
     try {
@@ -106,7 +131,14 @@ export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean 
       </button>
     );
   } else if (loan.status === 'active' && isLender) {
-    body = <Hint>Loan is active. The borrower can mark it returned when ready.</Hint>;
+    body = (
+      <div className="space-y-2">
+        <Hint>Loan is active. The borrower can mark it returned when ready — or you can recall it if you need it back sooner.</Hint>
+        <button onClick={recallItem} disabled={busy} className="btn-secondary w-full">
+          Recall — I need it back
+        </button>
+      </div>
+    );
   } else if (loan.status === 'pending_return' && isLender) {
     body = (
       <MultiPhotoPicker

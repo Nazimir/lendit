@@ -15,27 +15,37 @@ export default async function HomePage({ searchParams }: { searchParams: { q?: s
   const { data: me } = await supabase.from('profiles').select('*').eq('id', user.id).single();
   const q = (searchParams.q || '').trim();
 
-  // Available items, prioritise same suburb as the user
+  // Available items, prioritise same suburb as the user. When a search query
+  // is active we widen the net: search title + description + category, and
+  // include on-loan items (tagged visually so users know they aren't free).
   let feedQuery = supabase
     .from('items_with_owner')
     .select('*')
-    .eq('is_available', true)
     .neq('owner_id', user.id)
     .order('created_at', { ascending: false })
-    .limit(40);
-  if (q) feedQuery = feedQuery.ilike('title', `%${q}%`);
+    .limit(60);
+  if (q) {
+    const pattern = `%${q}%`;
+    feedQuery = feedQuery.or(
+      `title.ilike.${pattern},description.ilike.${pattern},category.ilike.${pattern}`
+    );
+  } else {
+    feedQuery = feedQuery.eq('is_available', true);
+  }
 
   const { data: feed } = await feedQuery;
 
-  // Sort: same suburb first
+  // Sort: available + same suburb first, then on-loan + same suburb,
+  // then everyone else.
   const items = (feed || []) as ItemWithOwner[];
-  if (me?.suburb) {
-    items.sort((a, b) => {
-      const aLocal = a.owner_suburb === me.suburb ? 0 : 1;
-      const bLocal = b.owner_suburb === me.suburb ? 0 : 1;
-      return aLocal - bLocal;
-    });
-  }
+  items.sort((a, b) => {
+    const aAvail = a.is_available ? 0 : 1;
+    const bAvail = b.is_available ? 0 : 1;
+    if (aAvail !== bAvail) return aAvail - bAvail;
+    const aLocal = me?.suburb && a.owner_suburb === me.suburb ? 0 : 1;
+    const bLocal = me?.suburb && b.owner_suburb === me.suburb ? 0 : 1;
+    return aLocal - bLocal;
+  });
 
   // My items currently out (loans where I'm lender, status not completed)
   const { data: outLoansRaw } = await supabase

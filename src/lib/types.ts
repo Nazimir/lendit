@@ -4,6 +4,22 @@ export type RequestStatus = 'pending' | 'accepted' | 'declined' | 'cancelled' | 
 export type LoanStatus = 'pending_handover' | 'active' | 'pending_return' | 'completed' | 'disputed';
 export type DisputeStatus = 'open' | 'resolved';
 export type ExtensionStatus = 'pending' | 'approved' | 'denied' | 'cancelled';
+export type LendInviteStatus = 'pending' | 'claimed' | 'expired' | 'cancelled';
+
+export interface LendInvite {
+  id: string;
+  token: string;
+  lender_id: string;
+  item_id: string;
+  loan_period_days: number;
+  recipient_hint: string;
+  status: LendInviteStatus;
+  expires_at: string;
+  claimed_by: string | null;
+  claimed_at: string | null;
+  loan_id: string | null;
+  created_at: string;
+}
 
 export interface LoanExtension {
   id: string;

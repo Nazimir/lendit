@@ -2,10 +2,10 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import { Avatar } from '@/components/Avatar';
 import { Spinner } from '@/components/Spinner';
 import { normalizeImage } from '@/lib/imageUpload';
+import { uploadAvatar } from './actions';
 import type { Profile } from '@/lib/types';
 
 export function AvatarUploader({ profile, size = 64 }: { profile: Profile; size?: number }) {
@@ -19,17 +19,9 @@ export function AvatarUploader({ profile, size = 64 }: { profile: Profile; size?
     e.target.value = '';
     if (!file) return;
     setBusy(true); setError(null);
-    const sb = createClient();
 
-    // Step 0: confirm we have a session
-    const { data: { user }, error: authErr } = await sb.auth.getUser();
-    if (authErr || !user) {
-      setError('Not signed in. Please refresh the page.');
-      setBusy(false);
-      return;
-    }
-
-    // Step 1: convert HEIC if needed
+    // HEIC conversion has to happen in the browser — heic2any is a browser
+    // library and File objects from <input> live in the browser anyway.
     let normalized: File;
     try {
       normalized = await normalizeImage(file);
@@ -39,28 +31,15 @@ export function AvatarUploader({ profile, size = 64 }: { profile: Profile; size?
       return;
     }
 
-    // Step 2: storage upload
-    const ext = (normalized.name.split('.').pop() || 'jpg').toLowerCase();
-    const path = `${user.id}/avatar-${Date.now()}.${ext}`;
-    const { error: upErr } = await sb.storage
-      .from('profile-photos')
-      .upload(path, normalized, { upsert: true, contentType: normalized.type || 'image/jpeg' });
-    if (upErr) {
-      setError('Storage step failed: ' + upErr.message);
-      setBusy(false);
-      return;
-    }
-
-    // Step 3: write the URL onto the profile row
-    const { data: pub } = sb.storage.from('profile-photos').getPublicUrl(path);
-    const { error: updErr } = await sb.from('profiles').update({ photo_url: pub.publicUrl }).eq('id', user.id);
-    if (updErr) {
-      setError('Profile update step failed: ' + updErr.message);
-      setBusy(false);
-      return;
-    }
+    const fd = new FormData();
+    fd.append('avatar', normalized);
+    const result = await uploadAvatar(fd);
 
     setBusy(false);
+    if ('error' in result) {
+      setError(result.error);
+      return;
+    }
     router.refresh();
   }
 
@@ -95,7 +74,7 @@ export function AvatarUploader({ profile, size = 64 }: { profile: Profile; size?
         className="hidden"
         onChange={onPick}
       />
-      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+      {error && <p className="text-xs text-red-600 mt-1 max-w-[260px]">{error}</p>}
     </div>
   );
 }

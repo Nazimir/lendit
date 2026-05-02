@@ -35,6 +35,7 @@ export async function updateSession(request: NextRequest) {
     path.startsWith('/login') ||
     path.startsWith('/signup') ||
     path.startsWith('/auth') ||
+    path.startsWith('/invite') ||
     path.startsWith('/_next') ||
     path.startsWith('/manifest') ||
     path.startsWith('/icon') ||
