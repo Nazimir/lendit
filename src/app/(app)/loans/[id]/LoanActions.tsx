@@ -39,15 +39,18 @@ export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean 
     setBusy(true); setError(null);
     try {
       const urls = await uploadFiles(files, 'handover');
-      setProgress('Starting the loan clock…');
+      setProgress(loan.loan_period_days ? 'Starting the loan clock…' : 'Marking as handed over…');
       const now = new Date();
-      const due = new Date(now.getTime() + loan.loan_period_days * 86_400_000);
+      // Open-ended loans (loan_period_days = null) don't get a due date.
+      const due = loan.loan_period_days
+        ? new Date(now.getTime() + loan.loan_period_days * 86_400_000)
+        : null;
       const sb = createClient();
       const { error } = await sb.from('loans').update({
         status: 'active',
         handover_photos: urls,
         handover_at: now.toISOString(),
-        due_at: due.toISOString()
+        due_at: due ? due.toISOString() : null
       }).eq('id', loan.id);
       if (error) throw error;
       router.refresh();

@@ -40,6 +40,7 @@ function LendInner() {
 
   // Shared state
   const [days, setDays] = useState('7');
+  const [openEnded, setOpenEnded] = useState(false);
   const [recipientEmail, setRecipientEmail] = useState('');
   const [recipientHint, setRecipientHint] = useState('');
   const [busy, setBusy] = useState(false);
@@ -60,7 +61,8 @@ function LendInner() {
       }
       const item = data as Item;
       setExistingItem(item);
-      setDays(String(item.max_loan_days));
+      if (item.max_loan_days) setDays(String(item.max_loan_days));
+      else setOpenEnded(true);
       setLoadingItem(false);
     })();
   }, [itemParam]);
@@ -69,7 +71,7 @@ function LendInner() {
     e.preventDefault();
     setError(null);
 
-    const numDays = Math.max(1, Math.min(365, parseInt(days || '1', 10) || 1));
+    const numDays = openEnded ? null : Math.max(1, Math.min(365, parseInt(days || '1', 10) || 1));
 
     if (existingItem) {
       // Existing item flow — no photo upload, no item creation
@@ -243,12 +245,18 @@ function LendInner() {
             type="number"
             min={1}
             max={365}
-            required
-            value={days}
+            required={!openEnded}
+            disabled={openEnded}
+            value={openEnded ? '' : days}
             onChange={e => setDays(e.target.value)}
-            onBlur={e => { if (!e.target.value) setDays('1'); }}
+            onBlur={e => { if (!e.target.value && !openEnded) setDays('1'); }}
+            placeholder={openEnded ? 'Open-ended — return whenever' : ''}
           />
         </div>
+        <label className="flex items-center justify-between card p-4">
+          <span className="text-sm">Open-ended (no fixed return date)</span>
+          <input type="checkbox" checked={openEnded} onChange={e => setOpenEnded(e.target.checked)} className="h-5 w-5 accent-accent-400" />
+        </label>
 
         <div className="card p-4 space-y-3">
           <h3 className="font-display text-xl">Who&apos;s borrowing this?</h3>

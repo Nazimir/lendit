@@ -60,11 +60,12 @@ export interface Item {
   description: string;
   category: string;
   photos: string[];
-  max_loan_days: number;
+  max_loan_days: number | null;
   extensions_allowed: boolean;
   is_available: boolean;
   expected_back_at: string | null;
   quirks: Quirks;
+  chain_handoffs_allowed: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -111,6 +112,7 @@ export interface BorrowRequest {
   message: string;
   status: RequestStatus;
   expires_at: string;
+  chain_after_loan_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -122,7 +124,7 @@ export interface Loan {
   lender_id: string;
   request_id: string | null;
   status: LoanStatus;
-  loan_period_days: number;
+  loan_period_days: number | null;
   handover_photos: string[];
   handover_at: string | null;
   due_at: string | null;

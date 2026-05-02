@@ -64,7 +64,7 @@ export default async function MyListingsPage() {
                     <div className="min-w-0 flex-1">
                       <div className="font-display text-lg leading-tight line-clamp-1">{it.title}</div>
                       <div className="font-mono text-[10px] uppercase tracking-wider mt-0.5 opacity-70">
-                        {it.category} · {it.max_loan_days}d max
+                        {it.category} · {it.max_loan_days ? `${it.max_loan_days}d max` : 'open-ended'}
                       </div>
                       <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {it.is_available

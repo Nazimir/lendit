@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { ItemCard } from '@/components/ItemCard';
 import { SearchBar } from './SearchBar';
 import { paletteForCategory } from '@/lib/categoryStyle';
+import { expandSearchTerms } from '@/lib/synonyms';
 import type { ItemWithOwner, Loan, Item } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -15,29 +16,27 @@ export default async function HomePage({ searchParams }: { searchParams: { q?: s
   const { data: me } = await supabase.from('profiles').select('*').eq('id', user.id).single();
   const q = (searchParams.q || '').trim();
 
-  // Available items, prioritise same suburb as the user. When a search query
-  // is active we widen the net: search title + description + category, and
-  // include on-loan items (tagged visually so users know they aren't free).
-  let feedQuery = supabase
-    .from('items_with_owner')
-    .select('*')
-    .neq('owner_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(60);
+  // Search: when a query is present, use the fuzzy RPC (typo-tolerant +
+  // synonym-expanded). Without a query, just list available items.
+  let items: ItemWithOwner[] = [];
   if (q) {
-    const pattern = `%${q}%`;
-    feedQuery = feedQuery.or(
-      `title.ilike.${pattern},description.ilike.${pattern},category.ilike.${pattern}`
-    );
+    const terms = expandSearchTerms(q);
+    const { data: searchResults } = await supabase.rpc('search_items_fuzzy', { terms });
+    items = (searchResults || []) as ItemWithOwner[];
   } else {
-    feedQuery = feedQuery.eq('is_available', true);
+    const { data: feed } = await supabase
+      .from('items_with_owner')
+      .select('*')
+      .eq('is_available', true)
+      .neq('owner_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(60);
+    items = (feed || []) as ItemWithOwner[];
   }
 
-  const { data: feed } = await feedQuery;
-
   // Sort: available + same suburb first, then on-loan + same suburb,
-  // then everyone else.
-  const items = (feed || []) as ItemWithOwner[];
+  // then everyone else. The RPC already orders by score; we re-stable-sort
+  // by suburb on top of that.
   items.sort((a, b) => {
     const aAvail = a.is_available ? 0 : 1;
     const bAvail = b.is_available ? 0 : 1;

@@ -15,7 +15,9 @@ export default function NewListingPage() {
   const [category, setCategory] = useState<string>(CATEGORIES[0]);
   const [files, setFiles] = useState<File[]>([]);
   const [maxDays, setMaxDays] = useState('7');
+  const [openEnded, setOpenEnded] = useState(false);
   const [extensions, setExtensions] = useState(false);
+  const [chainHandoffs, setChainHandoffs] = useState(true);
   const [available, setAvailable] = useState(true);
   const [quirks, setQuirks] = useState<Quirks>({});
   const [busy, setBusy] = useState(false);
@@ -56,7 +58,7 @@ export default function NewListingPage() {
     const cleanQuirks = Object.fromEntries(
       Object.entries(quirks).filter(([, v]) => v && v.trim().length > 0).map(([k, v]) => [k, v!.trim()])
     );
-    const numMaxDays = Math.max(1, Math.min(365, parseInt(maxDays || '1', 10) || 1));
+    const numMaxDays = openEnded ? null : Math.max(1, Math.min(365, parseInt(maxDays || '1', 10) || 1));
     const { data: item, error: insErr } = await supabase.from('items').insert({
       owner_id: user.id,
       title: title.trim(),
@@ -65,6 +67,7 @@ export default function NewListingPage() {
       photos: urls,
       max_loan_days: numMaxDays,
       extensions_allowed: extensions,
+      chain_handoffs_allowed: chainHandoffs,
       is_available: available,
       quirks: cleanQuirks
     }).select('id').single();
@@ -104,15 +107,30 @@ export default function NewListingPage() {
             type="number"
             min={1}
             max={365}
-            required
-            value={maxDays}
+            required={!openEnded}
+            disabled={openEnded}
+            value={openEnded ? '' : maxDays}
             onChange={e => setMaxDays(e.target.value)}
-            onBlur={e => { if (!e.target.value) setMaxDays('1'); }}
+            onBlur={e => { if (!e.target.value && !openEnded) setMaxDays('1'); }}
+            placeholder={openEnded ? 'Open-ended — no fixed return date' : ''}
           />
         </div>
         <label className="flex items-center justify-between card p-4">
+          <span className="text-sm">Open-ended (no fixed return date)</span>
+          <input type="checkbox" checked={openEnded} onChange={e => setOpenEnded(e.target.checked)} className="h-5 w-5 accent-accent-400" />
+        </label>
+        <label className="flex items-center justify-between card p-4">
           <span className="text-sm">Allow extension requests</span>
           <input type="checkbox" checked={extensions} onChange={e => setExtensions(e.target.checked)} className="h-5 w-5 accent-accent-400" />
+        </label>
+        <label className="flex items-start justify-between card p-4 gap-3">
+          <span className="text-sm">
+            Allow borrower-to-borrower handoffs
+            <span className="block text-[11px] text-gray-500 mt-0.5">
+              Lets a queued borrower take it directly from the current one (with your approval each time).
+            </span>
+          </span>
+          <input type="checkbox" checked={chainHandoffs} onChange={e => setChainHandoffs(e.target.checked)} className="h-5 w-5 accent-accent-400 mt-0.5 shrink-0" />
         </label>
         <label className="flex items-center justify-between card p-4">
           <span className="text-sm">Available now</span>

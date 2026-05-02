@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/PageHeader';
 import { ItemAd } from '@/components/ItemAd';
 import { RequestForm } from './RequestForm';
-import type { Item, Profile, BorrowRequest } from '@/lib/types';
+import type { Item, Profile, BorrowRequest, Loan } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,13 +19,23 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
 
   const { data: owner } = await supabase.from('profiles').select('*').eq('id', (item as Item).owner_id).single();
 
+  // My most recent request for this item, if any (regular or chain)
   const { data: mine } = await supabase
     .from('borrow_requests')
     .select('*')
     .eq('item_id', params.id).eq('borrower_id', user.id)
     .order('created_at', { ascending: false }).limit(1);
-
   const existing = (mine?.[0] || null) as BorrowRequest | null;
+
+  // If item is unavailable, look up the active loan so we can offer a
+  // chain handoff request when the lender allows it.
+  let activeLoan: Loan | null = null;
+  if (!item.is_available) {
+    const { data: l } = await supabase
+      .from('loans').select('*').eq('item_id', params.id)
+      .in('status', ['active', 'pending_return']).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    activeLoan = (l as Loan) || null;
+  }
 
   return (
     <main>
@@ -39,6 +49,10 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
             ownerId={(item as Item).owner_id}
             existing={existing}
             available={item.is_available}
+            chainHandoffsAllowed={(item as Item).chain_handoffs_allowed}
+            activeLoanId={activeLoan?.id || null}
+            activeBorrowerId={activeLoan?.borrower_id || null}
+            currentUserId={user.id}
           />
         </div>
       </div>

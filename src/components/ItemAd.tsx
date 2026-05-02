@@ -50,8 +50,8 @@ export function ItemAd({
           {item.title}
         </h1>
         <div className="flex flex-wrap gap-2 mt-3">
-          <Pill palette={palette}>Up to {item.max_loan_days}d</Pill>
-          {item.extensions_allowed && <Pill palette={palette}>Extensions OK</Pill>}
+          <Pill palette={palette}>{item.max_loan_days ? `Up to ${item.max_loan_days}d` : 'Open-ended'}</Pill>
+          {item.extensions_allowed && item.max_loan_days && <Pill palette={palette}>Extensions OK</Pill>}
           {!item.is_available && (
             <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-rose-soft text-accent-900">
               On loan

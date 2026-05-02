@@ -6,10 +6,11 @@ import { Avatar } from '@/components/Avatar';
 import { LoanActions } from './LoanActions';
 import { ReviewBlock } from './ReviewBlock';
 import { Extensions } from './Extensions';
+import { ChainHandoff } from './ChainHandoff';
 import { Lightbox } from '@/components/Lightbox';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { dateLabel } from '@/lib/utils';
-import type { Loan, Item, Profile, Review, LoanExtension } from '@/lib/types';
+import type { Loan, Item, Profile, Review, LoanExtension, BorrowRequest } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,16 +26,34 @@ export default async function LoanDetailPage({ params }: { params: { id: string 
   const isLender = loan.lender_id === user.id;
   const otherId = isLender ? loan.borrower_id : loan.lender_id;
 
-  const [{ data: item }, { data: other }, { data: reviewsRaw }, { data: extsRaw }] = await Promise.all([
+  const [
+    { data: item },
+    { data: other },
+    { data: reviewsRaw },
+    { data: extsRaw },
+    { data: chainReqRaw }
+  ] = await Promise.all([
     supabase.from('items').select('*').eq('id', loan.item_id).single(),
     supabase.from('profiles').select('*').eq('id', otherId).single(),
     supabase.from('reviews').select('*').eq('loan_id', loan.id),
-    supabase.from('loan_extensions').select('*').eq('loan_id', loan.id).order('created_at', { ascending: false })
+    supabase.from('loan_extensions').select('*').eq('loan_id', loan.id).order('created_at', { ascending: false }),
+    supabase
+      .from('borrow_requests').select('*')
+      .eq('chain_after_loan_id', loan.id).eq('status', 'accepted')
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
   ]);
 
   const reviews = (reviewsRaw || []) as Review[];
   const myReview = reviews.find(r => r.reviewer_id === user.id);
   const extensions = (extsRaw || []) as LoanExtension[];
+  const chainRequest = (chainReqRaw as BorrowRequest) || null;
+
+  // Fetch the next-in-line borrower's profile for the chain handoff card
+  let nextBorrower: Profile | null = null;
+  if (chainRequest) {
+    const { data } = await supabase.from('profiles').select('*').eq('id', chainRequest.borrower_id).single();
+    nextBorrower = (data as Profile) || null;
+  }
 
   return (
     <main>
@@ -58,7 +77,7 @@ export default async function LoanDetailPage({ params }: { params: { id: string 
                   <div className="min-w-0 flex-1">
                     <div className="font-display text-xl line-clamp-1">{(item as Item)?.title}</div>
                     <div className="font-mono text-[10px] uppercase tracking-wider mt-0.5 opacity-70">
-                      {loan.loan_period_days}-day loan
+                      {loan.loan_period_days ? `${loan.loan_period_days}-day loan` : 'Open-ended loan'}
                       {loan.due_at && <> · Due {dateLabel(loan.due_at)}</>}
                     </div>
                   </div>
@@ -99,6 +118,14 @@ export default async function LoanDetailPage({ params }: { params: { id: string 
           loanStatus={loan.status}
           dueAt={loan.due_at}
           extensions={extensions}
+        />
+
+        <ChainHandoff
+          loanId={loan.id}
+          loanItemId={loan.item_id}
+          chainRequest={chainRequest}
+          nextBorrower={nextBorrower}
+          isCurrentBorrower={!isLender}
         />
 
         <PhotoGallery title="Handover photos" photos={(loan as Loan).handover_photos} />

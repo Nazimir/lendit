@@ -11,7 +11,7 @@ interface LendPayload {
   description?: string;
   category?: string;
   photo_urls?: string[];
-  loan_period_days: number;
+  loan_period_days: number | null; // null = open-ended (no fixed return date)
   recipient_email: string;
   recipient_hint: string;
 }
@@ -26,7 +26,9 @@ export async function createLending(payload: LendPayload): Promise<
   if (!user) return { error: 'Not signed in.' };
 
   const recipient_email = payload.recipient_email.trim().toLowerCase();
-  if (payload.loan_period_days < 1) return { error: 'Loan period must be at least 1 day.' };
+  if (payload.loan_period_days !== null && payload.loan_period_days < 1) {
+    return { error: 'Loan period must be at least 1 day.' };
+  }
 
   // Resolve the item: either reuse an existing one or create a new one.
   let itemId: string;

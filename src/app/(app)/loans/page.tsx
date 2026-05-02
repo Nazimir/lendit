@@ -153,7 +153,9 @@ function LoanRow({
           <div className="font-mono text-[10px] uppercase tracking-wider mt-0.5 opacity-70">
             {loan.due_at && loan.status !== 'completed' && <>Due {dateLabel(loan.due_at)}</>}
             {loan.completed_at && <>Completed {dateLabel(loan.completed_at)}</>}
-            {!loan.due_at && !loan.completed_at && <>{loan.loan_period_days}-day loan</>}
+            {!loan.due_at && !loan.completed_at && (
+              <>{loan.loan_period_days ? `${loan.loan_period_days}-day loan` : 'Open-ended'}</>
+            )}
           </div>
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
