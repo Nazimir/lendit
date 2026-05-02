@@ -2,11 +2,14 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import { Avatar } from '@/components/Avatar';
 import { Spinner } from '@/components/Spinner';
 import { normalizeImage } from '@/lib/imageUpload';
-import { uploadAvatar } from './actions';
 import type { Profile } from '@/lib/types';
+
+const AVATAR_SIZE = 256;
+const AVATAR_QUALITY = 0.82;
 
 export function AvatarUploader({ profile, size = 64 }: { profile: Profile; size?: number }) {
   const router = useRouter();
@@ -20,27 +23,24 @@ export function AvatarUploader({ profile, size = 64 }: { profile: Profile; size?
     if (!file) return;
     setBusy(true); setError(null);
 
-    // HEIC conversion has to happen in the browser — heic2any is a browser
-    // library and File objects from <input> live in the browser anyway.
-    let normalized: File;
     try {
-      normalized = await normalizeImage(file);
+      // 1. HEIC → JPEG if needed
+      const normalized = await normalizeImage(file);
+
+      // 2. Resize and compress in the browser via Canvas → small data URL
+      const dataUrl = await resizeToDataURL(normalized, AVATAR_SIZE, AVATAR_QUALITY);
+
+      // 3. Save the data URL straight onto the profile row. No storage bucket.
+      const sb = createClient();
+      const { error: updErr } = await sb.from('profiles').update({ photo_url: dataUrl }).eq('id', profile.id);
+      if (updErr) throw updErr;
+
+      router.refresh();
     } catch (e: any) {
-      setError('Image conversion failed: ' + (e?.message || 'unknown'));
+      setError(e?.message || 'Upload failed');
+    } finally {
       setBusy(false);
-      return;
     }
-
-    const fd = new FormData();
-    fd.append('avatar', normalized);
-    const result = await uploadAvatar(fd);
-
-    setBusy(false);
-    if ('error' in result) {
-      setError(result.error);
-      return;
-    }
-    router.refresh();
   }
 
   return (
@@ -77,4 +77,35 @@ export function AvatarUploader({ profile, size = 64 }: { profile: Profile; size?
       {error && <p className="text-xs text-red-600 mt-1 max-w-[260px]">{error}</p>}
     </div>
   );
+}
+
+/**
+ * Read a File as a base64 data URL after resizing to a square thumbnail.
+ * Uses a center-crop to fit the avatar shape.
+ */
+async function resizeToDataURL(file: File, size: number, quality: number): Promise<string> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error('Could not read image'));
+      i.src = url;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas not supported');
+
+    // Center-crop the source to a square
+    const sourceSize = Math.min(img.naturalWidth, img.naturalHeight);
+    const sx = (img.naturalWidth - sourceSize) / 2;
+    const sy = (img.naturalHeight - sourceSize) / 2;
+    ctx.drawImage(img, sx, sy, sourceSize, sourceSize, 0, 0, size, size);
+
+    return canvas.toDataURL('image/jpeg', quality);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }

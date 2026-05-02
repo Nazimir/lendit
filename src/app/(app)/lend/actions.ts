@@ -4,11 +4,14 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 
 interface LendPayload {
-  title: string;
-  description: string;
-  category: string;
+  // Either pass existing_item_id to lend something already in your listings,
+  // or pass title/description/category/photo_urls to create a new item on the fly.
+  existing_item_id?: string;
+  title?: string;
+  description?: string;
+  category?: string;
+  photo_urls?: string[];
   loan_period_days: number;
-  photo_urls: string[];
   recipient_email: string;
   recipient_hint: string;
 }
@@ -22,29 +25,43 @@ export async function createLending(payload: LendPayload): Promise<
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not signed in.' };
 
-  const title = payload.title.trim();
   const recipient_email = payload.recipient_email.trim().toLowerCase();
-  if (!title) return { error: 'Title is required.' };
-  if (payload.photo_urls.length === 0) return { error: 'Add at least one photo.' };
   if (payload.loan_period_days < 1) return { error: 'Loan period must be at least 1 day.' };
 
-  // 1. Create the item, marked unavailable up-front (we're handing it over now).
-  const { data: itemRow, error: itemErr } = await supabase
-    .from('items')
-    .insert({
-      owner_id: user.id,
-      title,
-      description: payload.description.trim() || 'In-person loan.',
-      category: payload.category,
-      photos: payload.photo_urls,
-      max_loan_days: payload.loan_period_days,
-      extensions_allowed: true,
-      is_available: false
-    })
-    .select('id')
-    .single();
-  if (itemErr || !itemRow) return { error: 'Could not create the listing: ' + (itemErr?.message || 'unknown') };
-  const itemId = itemRow.id as string;
+  // Resolve the item: either reuse an existing one or create a new one.
+  let itemId: string;
+  if (payload.existing_item_id) {
+    const { data: existing, error: lookupErr } = await supabase
+      .from('items')
+      .select('id, owner_id, is_available')
+      .eq('id', payload.existing_item_id)
+      .maybeSingle();
+    if (lookupErr || !existing) return { error: 'Could not find that listing.' };
+    if (existing.owner_id !== user.id) return { error: "That listing isn't yours." };
+    if (!existing.is_available) return { error: 'That item is already on loan or marked unavailable.' };
+    itemId = existing.id as string;
+  } else {
+    const title = (payload.title || '').trim();
+    if (!title) return { error: 'Title is required.' };
+    if (!payload.photo_urls || payload.photo_urls.length === 0) return { error: 'Add at least one photo.' };
+
+    const { data: itemRow, error: itemErr } = await supabase
+      .from('items')
+      .insert({
+        owner_id: user.id,
+        title,
+        description: (payload.description || '').trim() || 'In-person loan.',
+        category: payload.category || 'Other',
+        photos: payload.photo_urls,
+        max_loan_days: payload.loan_period_days,
+        extensions_allowed: true,
+        is_available: false
+      })
+      .select('id')
+      .single();
+    if (itemErr || !itemRow) return { error: 'Could not create the listing: ' + (itemErr?.message || 'unknown') };
+    itemId = itemRow.id as string;
+  }
 
   // 2. Look for an existing user matching the email.
   let recipientId: string | null = null;

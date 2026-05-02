@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/PageHeader';
@@ -37,7 +38,16 @@ export default async function MyListingDetail({ params }: { params: { id: string
       <div className="px-4 max-w-2xl mx-auto pb-8">
         <ItemAd item={item as Item} owner={null} ownerView />
 
-        <div className="mt-5">
+        {(item as Item).is_available && (
+          <Link
+            href={`/lend?item=${(item as Item).id}`}
+            className="btn-primary w-full mt-5 block text-center"
+          >
+            Lend this in person now
+          </Link>
+        )}
+
+        <div className="mt-3">
           <ListingActions item={item as Item} />
         </div>
 

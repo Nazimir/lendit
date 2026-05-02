@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { CATEGORIES } from '@/lib/types';
+import { CATEGORIES, type Item } from '@/lib/types';
 import { PageHeader } from '@/components/PageHeader';
 import { ProgressBanner } from '@/components/Spinner';
 import { normalizeImage } from '@/lib/imageUpload';
@@ -12,12 +13,32 @@ import { createLending } from './actions';
 type Phase = 'form' | 'invite';
 
 export default function LendInPersonPage() {
+  return (
+    <Suspense fallback={null}>
+      <LendInner />
+    </Suspense>
+  );
+}
+
+function LendInner() {
   const router = useRouter();
+  const search = useSearchParams();
+  const itemParam = search.get('item');
+
   const [phase, setPhase] = useState<Phase>('form');
+
+  // Existing-item mode state
+  const [loadingItem, setLoadingItem] = useState(!!itemParam);
+  const [existingItem, setExistingItem] = useState<Item | null>(null);
+  const [existingError, setExistingError] = useState<string | null>(null);
+
+  // New-item mode state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<string>(CATEGORIES[0]);
   const [files, setFiles] = useState<File[]>([]);
+
+  // Shared state
   const [days, setDays] = useState('7');
   const [recipientEmail, setRecipientEmail] = useState('');
   const [recipientHint, setRecipientHint] = useState('');
@@ -27,17 +48,61 @@ export default function LendInPersonPage() {
   const [inviteUrl, setInviteUrl] = useState('');
   const [inviteToken, setInviteToken] = useState('');
 
+  useEffect(() => {
+    if (!itemParam) return;
+    (async () => {
+      const sb = createClient();
+      const { data, error } = await sb.from('items').select('*').eq('id', itemParam).single();
+      if (error || !data) {
+        setExistingError('Could not load that listing.');
+        setLoadingItem(false);
+        return;
+      }
+      const item = data as Item;
+      setExistingItem(item);
+      setDays(String(item.max_loan_days));
+      setLoadingItem(false);
+    })();
+  }, [itemParam]);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
+
+    const numDays = Math.max(1, Math.min(365, parseInt(days || '1', 10) || 1));
+
+    if (existingItem) {
+      // Existing item flow — no photo upload, no item creation
+      setBusy(true);
+      setProgress('Setting up the loan…');
+      const result = await createLending({
+        existing_item_id: existingItem.id,
+        loan_period_days: numDays,
+        recipient_email: recipientEmail,
+        recipient_hint: recipientHint
+      });
+      setBusy(false); setProgress(null);
+      if ('error' in result) { setError(result.error); return; }
+      if (result.mode === 'direct') {
+        router.replace(`/loans/${result.loan_id}`);
+        router.refresh();
+      } else {
+        setInviteUrl(`${window.location.origin}${result.invite_url}`);
+        setInviteToken(result.token);
+        setPhase('invite');
+      }
+      return;
+    }
+
+    // New-item flow
     if (files.length === 0) { setError('Please add at least one photo.'); return; }
     if (!title.trim()) { setError('Give it a title.'); return; }
-    setBusy(true); setError(null);
+    setBusy(true);
 
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setError('Not signed in.'); setBusy(false); return; }
 
-    // Upload photos to item-photos
     const urls: string[] = [];
     for (let i = 0; i < files.length; i++) {
       const isHeic = /\.hei[cf]$/i.test(files[i].name) || /heic|heif/i.test(files[i].type);
@@ -58,7 +123,6 @@ export default function LendInPersonPage() {
     }
 
     setProgress('Setting up the loan…');
-    const numDays = Math.max(1, Math.min(365, parseInt(days || '1', 10) || 1));
     const result = await createLending({
       title: title.trim(),
       description: description.trim(),
@@ -69,14 +133,8 @@ export default function LendInPersonPage() {
       recipient_hint: recipientHint
     });
 
-    setBusy(false);
-    setProgress(null);
-
-    if ('error' in result) {
-      setError(result.error);
-      return;
-    }
-
+    setBusy(false); setProgress(null);
+    if ('error' in result) { setError(result.error); return; }
     if (result.mode === 'direct') {
       router.replace(`/loans/${result.loan_id}`);
       router.refresh();
@@ -91,41 +149,92 @@ export default function LendInPersonPage() {
     return <InviteShare url={inviteUrl} hint={recipientHint || recipientEmail} />;
   }
 
+  if (loadingItem) {
+    return (
+      <main>
+        <PageHeader title="Lend in person" back="/listings" />
+        <p className="px-4 max-w-2xl mx-auto pt-8 text-sm text-gray-500">Loading listing…</p>
+      </main>
+    );
+  }
+
+  if (existingError) {
+    return (
+      <main>
+        <PageHeader title="Lend in person" back="/listings" />
+        <div className="px-4 max-w-2xl mx-auto pt-8">
+          <p className="text-sm text-red-600">{existingError}</p>
+          <Link href="/lend" className="btn-primary mt-4 inline-block">Lend a new item instead</Link>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main>
-      <PageHeader title="Lend in person" back="/listings" />
+      <PageHeader title="Lend in person" back={existingItem ? `/listings/${existingItem.id}` : '/listings'} />
       <form onSubmit={onSubmit} className="px-4 max-w-2xl mx-auto pb-8 space-y-4">
-        <div className="card p-4 space-y-1">
-          <h2 className="font-display text-2xl">For when they&apos;re right there with you</h2>
-          <p className="text-sm text-gray-600">
-            Snap the item, name it, pick the borrower. We&apos;ll set up the loan in one step — no request-and-accept.
-          </p>
-        </div>
+        {existingItem ? (
+          <div className="card p-4 flex gap-3 items-center">
+            <div className="w-16 h-16 rounded-2xl bg-cream-200 overflow-hidden shrink-0">
+              {existingItem.photos[0] && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={existingItem.photos[0]} alt="" className="w-full h-full object-cover" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-display text-xl line-clamp-1">{existingItem.title}</div>
+              <div className="font-mono text-[10px] uppercase tracking-wider opacity-70 mt-0.5">
+                Lending this from your listings
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="card p-4 space-y-1">
+            <h2 className="font-display text-2xl">For when they&apos;re right there with you</h2>
+            <p className="text-sm text-gray-600">
+              Snap the item, name it, pick the borrower. We&apos;ll set up the loan in one step — no request-and-accept.
+            </p>
+            <p className="text-xs text-gray-500 pt-1">
+              Already listed it?{' '}
+              <Link href="/listings" className="text-accent-600 font-medium">Pick from your listings</Link>.
+            </p>
+          </div>
+        )}
 
-        <div>
-          <label className="label">Photo(s)</label>
-          <input
-            className="input"
-            type="file"
-            multiple
-            accept="image/*"
-            capture="environment"
-            onChange={e => setFiles(Array.from(e.target.files || []))}
-          />
-          {files.length > 0 && <p className="text-xs text-gray-500 mt-1">{files.length} photo{files.length > 1 ? 's' : ''} selected</p>}
-        </div>
+        {!existingItem && (
+          <>
+            <div>
+              <label className="label">Photo(s)</label>
+              <input
+                className="input"
+                type="file"
+                multiple
+                accept="image/*"
+                capture="environment"
+                onChange={e => setFiles(Array.from(e.target.files || []))}
+              />
+              {files.length > 0 && <p className="text-xs text-gray-500 mt-1">{files.length} photo{files.length > 1 ? 's' : ''} selected</p>}
+            </div>
 
-        <div>
-          <label className="label">What is it?</label>
-          <input className="input" required maxLength={80} value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Hardback paperback edition of TAZ" />
-        </div>
+            <div>
+              <label className="label">What is it?</label>
+              <input className="input" required maxLength={80} value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Hardback paperback edition of TAZ" />
+            </div>
 
-        <div>
-          <label className="label">Category</label>
-          <select className="input" value={category} onChange={e => setCategory(e.target.value)}>
-            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
+            <div>
+              <label className="label">Category</label>
+              <select className="input" value={category} onChange={e => setCategory(e.target.value)}>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="label">Notes (optional)</label>
+              <textarea className="input min-h-[64px]" maxLength={300} value={description} onChange={e => setDescription(e.target.value)} placeholder="Anything they should know" />
+            </div>
+          </>
+        )}
 
         <div>
           <label className="label">Loan period (days)</label>
@@ -139,11 +248,6 @@ export default function LendInPersonPage() {
             onChange={e => setDays(e.target.value)}
             onBlur={e => { if (!e.target.value) setDays('1'); }}
           />
-        </div>
-
-        <div>
-          <label className="label">Notes (optional)</label>
-          <textarea className="input min-h-[64px]" maxLength={300} value={description} onChange={e => setDescription(e.target.value)} placeholder="Anything they should know" />
         </div>
 
         <div className="card p-4 space-y-3">
@@ -194,7 +298,6 @@ function InviteShare({ url, hint }: { url: string; hint: string }) {
     }
   }
 
-  // Inline QR via api.qrserver.com — no library needed.
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&format=svg&margin=0&data=${encodeURIComponent(url)}`;
 
   return (

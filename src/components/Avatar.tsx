@@ -1,5 +1,3 @@
-import Image from 'next/image';
-
 // Deterministic pastel colour per name so different users feel distinct.
 function paletteFor(name: string) {
   let hash = 0;
@@ -18,7 +16,10 @@ export function Avatar({
   const initial = name.trim().charAt(0).toUpperCase() || '?';
   if (url) {
     return (
-      <Image
+      // Plain <img> so data: URLs and any remote URL work without next/image
+      // domain configuration. Avatars are tiny so optimisation isn't critical.
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
         src={url}
         alt={name}
         width={size}
