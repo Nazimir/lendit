@@ -75,7 +75,7 @@ export function Extensions({
 
 function RequestForm({ loanId, dueAt, onCreated }: { loanId: string; dueAt: string | null; onCreated: () => void }) {
   const [open, setOpen] = useState(false);
-  const [days, setDays] = useState(3);
+  const [days, setDays] = useState('3');
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +83,8 @@ function RequestForm({ loanId, dueAt, onCreated }: { loanId: string; dueAt: stri
   if (!open) {
     return <button className="btn-secondary w-full" onClick={() => setOpen(true)}>Request extension</button>;
   }
+
+  const numDays = Math.max(1, Math.min(60, parseInt(days || '1', 10) || 1));
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -93,7 +95,7 @@ function RequestForm({ loanId, dueAt, onCreated }: { loanId: string; dueAt: stri
     const { error } = await sb.from('loan_extensions').insert({
       loan_id: loanId,
       requested_by: user.id,
-      additional_days: days,
+      additional_days: numDays,
       reason: reason.trim()
     });
     setBusy(false);
@@ -103,7 +105,7 @@ function RequestForm({ loanId, dueAt, onCreated }: { loanId: string; dueAt: stri
   }
 
   const newDue = dueAt
-    ? new Date(new Date(dueAt).getTime() + days * 86_400_000)
+    ? new Date(new Date(dueAt).getTime() + numDays * 86_400_000)
     : null;
 
   return (
@@ -113,7 +115,9 @@ function RequestForm({ loanId, dueAt, onCreated }: { loanId: string; dueAt: stri
         <label className="label">How many extra days?</label>
         <input
           type="number" min={1} max={60} className="input"
-          value={days} onChange={e => setDays(parseInt(e.target.value || '1', 10))}
+          value={days}
+          onChange={e => setDays(e.target.value)}
+          onBlur={e => { if (!e.target.value) setDays('1'); }}
           required
         />
         {newDue && (

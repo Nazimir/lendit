@@ -18,7 +18,7 @@ export default function LendInPersonPage() {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<string>(CATEGORIES[0]);
   const [files, setFiles] = useState<File[]>([]);
-  const [days, setDays] = useState(7);
+  const [days, setDays] = useState('7');
   const [recipientEmail, setRecipientEmail] = useState('');
   const [recipientHint, setRecipientHint] = useState('');
   const [busy, setBusy] = useState(false);
@@ -58,11 +58,12 @@ export default function LendInPersonPage() {
     }
 
     setProgress('Setting up the loan…');
+    const numDays = Math.max(1, Math.min(365, parseInt(days || '1', 10) || 1));
     const result = await createLending({
       title: title.trim(),
       description: description.trim(),
       category,
-      loan_period_days: days,
+      loan_period_days: numDays,
       photo_urls: urls,
       recipient_email: recipientEmail,
       recipient_hint: recipientHint
@@ -128,7 +129,16 @@ export default function LendInPersonPage() {
 
         <div>
           <label className="label">Loan period (days)</label>
-          <input className="input" type="number" min={1} max={365} required value={days} onChange={e => setDays(parseInt(e.target.value || '1', 10))} />
+          <input
+            className="input"
+            type="number"
+            min={1}
+            max={365}
+            required
+            value={days}
+            onChange={e => setDays(e.target.value)}
+            onBlur={e => { if (!e.target.value) setDays('1'); }}
+          />
         </div>
 
         <div>

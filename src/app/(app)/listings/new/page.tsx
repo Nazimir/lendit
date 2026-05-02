@@ -14,7 +14,7 @@ export default function NewListingPage() {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<string>(CATEGORIES[0]);
   const [files, setFiles] = useState<File[]>([]);
-  const [maxDays, setMaxDays] = useState(7);
+  const [maxDays, setMaxDays] = useState('7');
   const [extensions, setExtensions] = useState(false);
   const [available, setAvailable] = useState(true);
   const [quirks, setQuirks] = useState<Quirks>({});
@@ -56,13 +56,14 @@ export default function NewListingPage() {
     const cleanQuirks = Object.fromEntries(
       Object.entries(quirks).filter(([, v]) => v && v.trim().length > 0).map(([k, v]) => [k, v!.trim()])
     );
+    const numMaxDays = Math.max(1, Math.min(365, parseInt(maxDays || '1', 10) || 1));
     const { data: item, error: insErr } = await supabase.from('items').insert({
       owner_id: user.id,
       title: title.trim(),
       description: description.trim(),
       category,
       photos: urls,
-      max_loan_days: maxDays,
+      max_loan_days: numMaxDays,
       extensions_allowed: extensions,
       is_available: available,
       quirks: cleanQuirks
@@ -98,7 +99,16 @@ export default function NewListingPage() {
         </div>
         <div>
           <label className="label">Maximum loan period (days)</label>
-          <input className="input" type="number" min={1} max={365} required value={maxDays} onChange={e => setMaxDays(parseInt(e.target.value || '1', 10))} />
+          <input
+            className="input"
+            type="number"
+            min={1}
+            max={365}
+            required
+            value={maxDays}
+            onChange={e => setMaxDays(e.target.value)}
+            onBlur={e => { if (!e.target.value) setMaxDays('1'); }}
+          />
         </div>
         <label className="flex items-center justify-between card p-4">
           <span className="text-sm">Allow extension requests</span>
