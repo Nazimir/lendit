@@ -5,6 +5,8 @@ import { ProfileEditor } from './ProfileEditor';
 import { SignOut } from './SignOut';
 import { AvatarUploader } from './AvatarUploader';
 import { DeleteAccount } from './DeleteAccount';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
+import Link from 'next/link';
 import type { Profile, Review } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -28,7 +30,10 @@ export default async function ProfilePage() {
         <div className="card p-5 flex items-center gap-4">
           <AvatarUploader profile={profile} size={64} />
           <div className="min-w-0 flex-1">
-            <div className="text-lg font-semibold">{profile?.first_name}</div>
+            <div className="text-lg font-semibold flex items-center gap-2">
+              {profile?.first_name}
+              {profile?.phone_verified && <VerifiedBadge size={16} />}
+            </div>
             <div className="text-sm text-gray-500">{profile?.suburb}</div>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               <Stars value={Number(profile?.reputation_score ?? 0)} />
@@ -40,6 +45,14 @@ export default async function ProfilePage() {
                 {profile?.karma_points ?? 0} karma
               </span>
             </div>
+            {!profile?.phone_verified && (
+              <Link
+                href="/verify?next=/profile"
+                className="inline-block mt-2 font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-butter-soft text-accent-900 hover:bg-butter-soft/80"
+              >
+                Verify your phone
+              </Link>
+            )}
           </div>
         </div>
 

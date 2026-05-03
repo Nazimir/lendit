@@ -6,6 +6,7 @@ import { Avatar } from '@/components/Avatar';
 import { Stars } from '@/components/Stars';
 import { ItemCard } from '@/components/ItemCard';
 import { SafetyMenu } from '@/components/SafetyMenu';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { dateLabel } from '@/lib/utils';
 import type { Profile, Review, Item, ItemWithOwner } from '@/lib/types';
@@ -57,14 +58,7 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
           <div className="min-w-0 flex-1">
             <div className="text-lg font-semibold flex items-center gap-2">
               {profile.first_name}
-              {profile.phone_verified && (
-                <span title="Phone verified" className="inline-flex items-center" aria-label="Phone verified">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#577559">
-                    <path d="M12 2l2.4 2.4 3.4-.4.6 3.4 3 1.6-1.6 3 1.6 3-3 1.6-.6 3.4-3.4-.4L12 22l-2.4-2.4-3.4.4-.6-3.4-3-1.6 1.6-3-1.6-3 3-1.6.6-3.4 3.4.4L12 2z" />
-                    <path d="M9 12l2 2 4-4" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </span>
-              )}
+              {profile.phone_verified && <VerifiedBadge size={16} />}
             </div>
             <div className="text-sm text-gray-500">{profile.suburb}</div>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
