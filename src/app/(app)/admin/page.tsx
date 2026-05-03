@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { isAdmin } from '@/lib/admin';
 import { PageHeader } from '@/components/PageHeader';
 import { Avatar } from '@/components/Avatar';
-import { ReportRow } from './ReportRow';
+import { ReportRow, ReopenButton } from './ReportRow';
 import { timeAgo } from '@/lib/utils';
 import type { Report, Profile, Item, Message } from '@/lib/types';
 
@@ -126,8 +126,17 @@ export default async function AdminPage({ searchParams }: { searchParams: { stat
                   />
                 )}
 
-                {r.status !== 'open' && r.resolution_note && (
-                  <p className="text-xs text-gray-500 italic">Note: {r.resolution_note}</p>
+                {r.status !== 'open' && (
+                  <div className="border-t border-cream-200 pt-3 flex items-center justify-between gap-3 flex-wrap">
+                    {r.resolution_note ? (
+                      <p className="text-xs text-gray-500 italic">Note: {r.resolution_note}</p>
+                    ) : <span className="text-xs text-gray-400">No note</span>}
+                    <ReopenButton
+                      reportId={r.id}
+                      // If the action hid an item, offer to also un-hide it
+                      itemToUnhideId={r.target_kind === 'item' && r.status === 'actioned' ? r.target_id : undefined}
+                    />
+                  </div>
                 )}
               </li>
             ))}

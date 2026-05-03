@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { dismissReport, actionReport, banUser, hideItem, deleteMessage } from './actions';
+import { dismissReport, actionReport, banUser, hideItem, deleteMessage, reopenReport } from './actions';
 import type { ReportTargetKind } from '@/lib/types';
 
 export function ReportRow({
@@ -89,6 +89,39 @@ export function ReportRow({
           className="btn-primary text-sm py-1.5 px-3"
         >Mark actioned</button>
       </div>
+    </div>
+  );
+}
+
+export function ReopenButton({
+  reportId, itemToUnhideId
+}: { reportId: string; itemToUnhideId?: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function go() {
+    if (!confirm(itemToUnhideId
+      ? 'Reopen this report and re-publish the hidden item?'
+      : 'Reopen this report?')) return;
+    setBusy(true); setError(null);
+    const res = await reopenReport(reportId, itemToUnhideId);
+    setBusy(false);
+    if ('error' in res) { setError(res.error); return; }
+    router.refresh();
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      <button
+        type="button"
+        disabled={busy}
+        onClick={go}
+        className="font-mono text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-cream-200 text-gray-700 hover:bg-accent-200"
+      >
+        {busy ? 'Reopening…' : itemToUnhideId ? 'Reopen + un-hide item' : 'Reopen'}
+      </button>
     </div>
   );
 }

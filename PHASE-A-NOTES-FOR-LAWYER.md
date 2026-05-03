@@ -151,6 +151,38 @@ Once counsel has reviewed Phase A, consider these for Phase B:
 5. **Reports & moderation queue** with a documented response-time SLA.
 6. **DSAR (Data Subject Access Request) handling email** for GDPR.
 
+## Operational & policy notes added since Phase A shipped
+
+These were noticed after the initial Phase A build and should be addressed.
+None are urgent for internal testing but matter for any wider release.
+
+### Password recovery email — language to add to Privacy Policy
+
+The new password-recovery flow (`/forgot` and `/reset`) sends a one-time
+link to the user's registered email address. Counsel should add a line to
+the Privacy Policy describing this — something like:
+
+> "If you request a password reset, we send a one-time link to your
+> registered email address. The link expires in approximately one hour and
+> can be used only once. We do not store the link contents on our servers."
+
+It also belongs in the description of "what data we collect": email
+address is now used not only for account login but also for security-
+related messages.
+
+### Transactional email provider (operational, not legal)
+
+The current Supabase project sends auth emails (signup confirmation,
+password recovery) via Supabase's built-in email service. This service is
+**rate-limited to roughly 4 emails per hour per project** on the free tier
+and is not guaranteed for production use. Before any wider launch we need
+to configure a proper SMTP provider in Supabase (SendGrid, Resend,
+Postmark, AWS SES, etc.) under **Authentication → SMTP Settings**.
+
+This is operational infrastructure, but counsel should be aware of the
+third-party provider added (the Privacy Policy "third-party processors"
+list will need an addition) and any DPA the chosen provider offers.
+
 ---
 
 Counsel review of `/terms` and `/privacy` content is the gating item before

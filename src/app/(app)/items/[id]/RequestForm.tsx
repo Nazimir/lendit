@@ -7,6 +7,14 @@ import { createClient } from '@/lib/supabase/client';
 import { timeUntil } from '@/lib/utils';
 import type { BorrowRequest } from '@/lib/types';
 
+function friendlyRequestError(raw: string) {
+  const r = raw.toLowerCase();
+  if (r.includes('row-level security') || r.includes('row level security')) {
+    return "You can't request from this user. One of you may have blocked the other.";
+  }
+  return raw;
+}
+
 export function RequestForm({
   itemId, ownerId, existing, available,
   chainHandoffsAllowed, activeLoanId, activeBorrowerId, currentUserId
@@ -97,7 +105,7 @@ export function RequestForm({
         message,
         chain_after_loan_id: activeLoanId
       });
-      if (error) { setError(error.message); setBusy(false); return; }
+      if (error) { setError(friendlyRequestError(error.message)); setBusy(false); return; }
 
       if (message.trim()) {
         await sb.from('messages').insert({
@@ -149,7 +157,7 @@ export function RequestForm({
     const { error } = await sb.from('borrow_requests').insert({
       item_id: itemId, borrower_id: user.id, lender_id: ownerId, message
     });
-    if (error) { setError(error.message); setBusy(false); return; }
+    if (error) { setError(friendlyRequestError(error.message)); setBusy(false); return; }
 
     if (message.trim()) {
       await sb.from('messages').insert({

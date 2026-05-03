@@ -85,3 +85,34 @@ export async function deleteMessage(messageId: string): Promise<{ ok: true } | {
   revalidatePath('/admin');
   return { ok: true };
 }
+
+export async function unhideItem(itemId: string): Promise<{ ok: true } | { error: string }> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { error: auth.error };
+  const { error } = await auth.supabase.from('items').update({ is_available: true }).eq('id', itemId);
+  if (error) return { error: error.message };
+  revalidatePath('/admin');
+  return { ok: true };
+}
+
+export async function reopenReport(reportId: string, alsoUnhideItemId?: string): Promise<{ ok: true } | { error: string }> {
+  const auth = await requireAdmin();
+  if (!auth.ok) return { error: auth.error };
+
+  // Reset the report to open
+  const { error } = await auth.supabase.from('reports').update({
+    status: 'open',
+    resolution_note: null,
+    resolved_at: null,
+    resolved_by: null
+  }).eq('id', reportId);
+  if (error) return { error: error.message };
+
+  // If the resolution had hidden an item, restore it too
+  if (alsoUnhideItemId) {
+    await auth.supabase.from('items').update({ is_available: true }).eq('id', alsoUnhideItemId);
+  }
+
+  revalidatePath('/admin');
+  return { ok: true };
+}

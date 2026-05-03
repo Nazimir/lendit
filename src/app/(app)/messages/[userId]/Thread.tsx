@@ -19,6 +19,7 @@ export function Thread({
   );
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   // Realtime: listen for new messages where I'm a participant of this pair
@@ -54,13 +55,22 @@ export function Thread({
   async function send(e: React.FormEvent) {
     e.preventDefault();
     if (!body.trim()) return;
-    setBusy(true);
+    setBusy(true); setSendError(null);
     const sb = createClient();
     const { error } = await sb.from('messages').insert({
       sender_id: meId, recipient_id: otherId, body: body.trim()
     });
     setBusy(false);
-    if (error) { alert(error.message); return; }
+    if (error) {
+      // Translate the raw RLS error into something a person can read.
+      const raw = error.message.toLowerCase();
+      if (raw.includes('row-level security') || raw.includes('row level security')) {
+        setSendError("This message can't be delivered. One of you may have blocked the other.");
+      } else {
+        setSendError("Couldn't send your message. Please try again.");
+      }
+      return;
+    }
     setBody('');
   }
 
@@ -97,15 +107,22 @@ export function Thread({
           ))
         )}
       </div>
-      <form onSubmit={send} className="p-3 border-t border-cream-200 flex gap-2">
-        <input
-          className="input flex-1 py-2.5"
-          placeholder="Message…"
-          value={body}
-          onChange={e => setBody(e.target.value)}
-          maxLength={1000}
-        />
-        <button className="btn-primary py-2.5 px-4" disabled={busy || !body.trim()}>Send</button>
+      <form onSubmit={send} className="p-3 border-t border-cream-200 flex flex-col gap-2">
+        {sendError && (
+          <div className="bg-rose-soft text-accent-900 text-xs rounded-xl px-3 py-2">
+            {sendError}
+          </div>
+        )}
+        <div className="flex gap-2">
+          <input
+            className="input flex-1 py-2.5"
+            placeholder="Message…"
+            value={body}
+            onChange={e => { setBody(e.target.value); if (sendError) setSendError(null); }}
+            maxLength={1000}
+          />
+          <button className="btn-primary py-2.5 px-4" disabled={busy || !body.trim()}>Send</button>
+        </div>
       </form>
     </div>
   );

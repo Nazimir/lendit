@@ -15,7 +15,20 @@ export const metadata: Metadata = {
   title: 'LendIt',
   description: 'Borrow stuff from your neighbours, free.',
   manifest: '/manifest.webmanifest',
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'LendIt' }
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'LendIt' },
+  icons: {
+    // Standard favicon
+    icon: [
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' }
+    ],
+    // iOS home-screen icon — REQUIRED for iOS to launch the PWA in standalone
+    // mode rather than as a Safari bookmark
+    apple: [
+      { url: '/icon-192.png', sizes: '192x192' },
+      { url: '/icon-512.png', sizes: '512x512' }
+    ]
+  }
 };
 
 export const viewport: Viewport = {
