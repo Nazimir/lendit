@@ -94,7 +94,14 @@ export function NewListingForm() {
       </div>
       <div>
         <label className="label">Photos</label>
-        <input className="input" type="file" multiple accept="image/*" onChange={e => setFiles(Array.from(e.target.files || []))} />
+        <input
+          className="input"
+          type="file"
+          multiple
+          accept="image/*"
+          capture="environment"
+          onChange={e => setFiles(Array.from(e.target.files || []))}
+        />
         {files.length > 0 && <p className="text-xs text-gray-500 mt-1">{files.length} photo{files.length > 1 ? 's' : ''} selected</p>}
       </div>
       <div>

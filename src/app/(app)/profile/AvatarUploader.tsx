@@ -71,6 +71,7 @@ export function AvatarUploader({ profile, size = 64 }: { profile: Profile; size?
         ref={inputRef}
         type="file"
         accept="image/*"
+        capture="user"
         className="hidden"
         onChange={onPick}
       />
