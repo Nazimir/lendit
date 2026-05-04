@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { ItemAd } from '@/components/ItemAd';
 import { VerifyGate } from '@/components/VerifyGate';
 import { SafetyMenu } from '@/components/SafetyMenu';
+import { REQUIRE_PHONE_VERIFICATION } from '@/lib/featureFlags';
 import { RequestForm } from './RequestForm';
 import type { Item, Profile, BorrowRequest, Loan } from '@/lib/types';
 
@@ -53,7 +54,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
         <ItemAd item={item as Item} owner={(owner as Profile) || null} />
 
         <div className="mt-6">
-          {!me?.phone_verified ? (
+          {REQUIRE_PHONE_VERIFICATION && !me?.phone_verified ? (
             <VerifyGate action="send a borrow request" next={`/items/${params.id}`} />
           ) : (
             <RequestForm

@@ -22,6 +22,7 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
     supabase.from('reviews').select('*').eq('reviewee_id', params.id)
       .order('created_at', { ascending: false }).limit(20),
     supabase.from('items').select('*').eq('owner_id', params.id)
+      .eq('visibility', 'public')
       .order('created_at', { ascending: false }),
     user
       ? supabase.from('blocks').select('id')

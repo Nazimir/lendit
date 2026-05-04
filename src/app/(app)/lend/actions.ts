@@ -57,7 +57,11 @@ export async function createLending(payload: LendPayload): Promise<
         photos: payload.photo_urls,
         max_loan_days: payload.loan_period_days,
         extensions_allowed: true,
-        is_available: false
+        is_available: false,
+        // Lend-in-person items are private by default — they're personal
+        // trackers for items the owner hand-delivered, not catalogue listings.
+        // The owner can flip them to public later from the listing page.
+        visibility: 'private'
       })
       .select('id')
       .single();

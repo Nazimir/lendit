@@ -85,6 +85,8 @@ export interface Quirks {
   habits?: string;
 }
 
+export type ItemVisibility = 'public' | 'private';
+
 export interface Item {
   id: string;
   owner_id: string;
@@ -98,6 +100,7 @@ export interface Item {
   expected_back_at: string | null;
   quirks: Quirks;
   chain_handoffs_allowed: boolean;
+  visibility: ItemVisibility;
   created_at: string;
   updated_at: string;
 }

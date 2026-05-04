@@ -6,6 +6,7 @@ import { SignOut } from './SignOut';
 import { AvatarUploader } from './AvatarUploader';
 import { DeleteAccount } from './DeleteAccount';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { REQUIRE_PHONE_VERIFICATION } from '@/lib/featureFlags';
 import Link from 'next/link';
 import type { Profile, Review } from '@/lib/types';
 
@@ -45,7 +46,7 @@ export default async function ProfilePage() {
                 {profile?.karma_points ?? 0} karma
               </span>
             </div>
-            {!profile?.phone_verified && (
+            {REQUIRE_PHONE_VERIFICATION && !profile?.phone_verified && (
               <Link
                 href="/verify?next=/profile"
                 className="inline-block mt-2 font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-butter-soft text-accent-900 hover:bg-butter-soft/80"

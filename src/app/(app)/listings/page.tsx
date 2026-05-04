@@ -70,6 +70,9 @@ export default async function MyListingsPage() {
                         {it.is_available
                           ? <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: palette.accent, color: '#fff' }}>Available</span>
                           : <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-soft text-accent-900">On loan</span>}
+                        {it.visibility === 'private' && (
+                          <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-cream-200 text-accent-900">Private</span>
+                        )}
                         {pendingByItem[it.id] > 0 && (
                           <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-butter-soft text-accent-900">
                             {pendingByItem[it.id]} pending

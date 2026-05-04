@@ -18,6 +18,7 @@ export function NewListingForm() {
   const [extensions, setExtensions] = useState(false);
   const [chainHandoffs, setChainHandoffs] = useState(true);
   const [available, setAvailable] = useState(true);
+  const [isPrivate, setIsPrivate] = useState(false);
   const [quirks, setQuirks] = useState<Quirks>({});
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
@@ -66,6 +67,7 @@ export function NewListingForm() {
       extensions_allowed: extensions,
       chain_handoffs_allowed: chainHandoffs,
       is_available: available,
+      visibility: isPrivate ? 'private' : 'public',
       quirks: cleanQuirks
     }).select('id').single();
 
@@ -130,6 +132,15 @@ export function NewListingForm() {
       <label className="flex items-center justify-between card p-4">
         <span className="text-sm">Available now</span>
         <input type="checkbox" checked={available} onChange={e => setAvailable(e.target.checked)} className="h-5 w-5 accent-accent-400" />
+      </label>
+      <label className="flex items-start justify-between card p-4 gap-3">
+        <span className="text-sm">
+          Keep this listing private
+          <span className="block text-[11px] text-gray-500 mt-0.5">
+            Only you (and any current borrower) can see it. Won&apos;t show up in search or on your public profile.
+          </span>
+        </span>
+        <input type="checkbox" checked={isPrivate} onChange={e => setIsPrivate(e.target.checked)} className="h-5 w-5 accent-accent-400 mt-0.5 shrink-0" />
       </label>
 
       <div className="card p-4 space-y-4">

@@ -59,6 +59,18 @@ export default async function MyListingDetail({ params }: { params: { id: string
     <main>
       <PageHeader title="Your listing" back="/listings" />
       <div className="px-4 max-w-2xl mx-auto pb-8">
+        {(item as Item).visibility === 'private' && (
+          <div className="card p-3 mb-3 flex items-center gap-2 border-2 border-cream-200 bg-cream-100">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5F4E33" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <rect x="4" y="11" width="16" height="10" rx="2" />
+              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+            </svg>
+            <div className="text-xs text-gray-700">
+              <strong className="font-medium">Private listing.</strong>{' '}
+              Only you (and the current borrower, if any) can see this. It won&apos;t appear in search or on your public profile.
+            </div>
+          </div>
+        )}
         <ItemAd item={item as Item} owner={null} ownerView />
 
         {activeLoan && (
