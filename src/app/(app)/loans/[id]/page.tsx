@@ -7,10 +7,11 @@ import { LoanActions } from './LoanActions';
 import { ReviewBlock } from './ReviewBlock';
 import { Extensions } from './Extensions';
 import { ChainHandoff } from './ChainHandoff';
+import { RetractDisputeButton } from './RetractDisputeButton';
 import { Lightbox } from '@/components/Lightbox';
 import { paletteForCategory } from '@/lib/categoryStyle';
-import { dateLabel } from '@/lib/utils';
-import type { Loan, Item, Profile, Review, LoanExtension, BorrowRequest } from '@/lib/types';
+import { dateLabel, timeAgo } from '@/lib/utils';
+import type { Loan, Item, Profile, Review, LoanExtension, BorrowRequest, Dispute } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +32,8 @@ export default async function LoanDetailPage({ params }: { params: { id: string 
     { data: other },
     { data: reviewsRaw },
     { data: extsRaw },
-    { data: chainReqRaw }
+    { data: chainReqRaw },
+    { data: disputeRaw }
   ] = await Promise.all([
     supabase.from('items').select('*').eq('id', loan.item_id).single(),
     supabase.from('profiles').select('*').eq('id', otherId).single(),
@@ -40,6 +42,9 @@ export default async function LoanDetailPage({ params }: { params: { id: string 
     supabase
       .from('borrow_requests').select('*')
       .eq('chain_after_loan_id', loan.id).eq('status', 'accepted')
+      .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    supabase
+      .from('disputes').select('*').eq('loan_id', loan.id)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
   ]);
 
@@ -47,6 +52,7 @@ export default async function LoanDetailPage({ params }: { params: { id: string 
   const myReview = reviews.find(r => r.reviewer_id === user.id);
   const extensions = (extsRaw || []) as LoanExtension[];
   const chainRequest = (chainReqRaw as BorrowRequest) || null;
+  const dispute = (disputeRaw as Dispute) || null;
 
   // Fetch the next-in-line borrower's profile for the chain handoff card
   let nextBorrower: Profile | null = null;
@@ -104,6 +110,25 @@ export default async function LoanDetailPage({ params }: { params: { id: string 
 
         <Link href={`/messages/${otherId}`} className="btn-secondary w-full mb-4">Open message thread</Link>
 
+        {dispute && dispute.status === 'open' && (
+          <DisputeBanner
+            dispute={dispute}
+            iAmOpener={dispute.opened_by === user.id}
+            otherName={(other as Profile)?.first_name || 'them'}
+          />
+        )}
+
+        {dispute && dispute.status === 'resolved' && (
+          <div className="card p-4 mb-4 border-2 border-cream-200 bg-cream-100">
+            <div className="font-mono text-[10px] uppercase tracking-wider text-gray-600 mb-1">
+              Dispute resolved · {timeAgo(dispute.resolved_at || dispute.created_at)}
+            </div>
+            {dispute.resolution_note && (
+              <p className="text-sm text-gray-700">{dispute.resolution_note}</p>
+            )}
+          </div>
+        )}
+
         <Timeline loan={loan as Loan} />
 
         <div className="mt-5">
@@ -138,6 +163,47 @@ export default async function LoanDetailPage({ params }: { params: { id: string 
         )}
       </div>
     </main>
+  );
+}
+
+function DisputeBanner({
+  dispute, iAmOpener, otherName
+}: {
+  dispute: Dispute;
+  iAmOpener: boolean;
+  otherName: string;
+}) {
+  return (
+    <div className="card p-4 mb-4 border-2 border-rose-soft bg-butter-soft/40">
+      <div className="flex items-start gap-3">
+        <div className="w-9 h-9 rounded-full bg-rose-soft flex items-center justify-center shrink-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5F4E33" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-display text-lg leading-tight">
+            {iAmOpener ? 'You opened a dispute on this loan' : `${otherName} opened a dispute on this loan`}
+          </h3>
+          <p className="font-mono text-[10px] uppercase tracking-wider text-gray-600 mt-1">
+            Filed {timeAgo(dispute.created_at)} · An admin is reviewing
+          </p>
+          <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">
+            {dispute.reason}
+          </p>
+          <p className="text-xs text-gray-600 mt-2">
+            The loan is frozen until an admin resolves it. You can keep messaging in the chat.
+          </p>
+        </div>
+      </div>
+      {iAmOpener && (
+        <div className="mt-3 pt-3 border-t border-rose-soft/50">
+          <RetractDisputeButton disputeId={dispute.id} />
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeImage } from '@/lib/imageUpload';
 import { ProgressBanner } from '@/components/Spinner';
+import { CancelHandoverButton } from './CancelHandoverButton';
+import { OpenDisputeForm } from './OpenDisputeForm';
 import type { Loan } from '@/lib/types';
 
 export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean }) {
@@ -118,20 +120,46 @@ export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean 
 
   if (loan.status === 'pending_handover' && isLender) {
     body = (
-      <MultiPhotoPicker
-        label="Confirm handover with photo(s)"
-        helper="Take or upload one or more photos as you hand the item over. Add extras if you want to document any pre-existing damage. This starts the loan clock."
-        onFiles={confirmHandover}
-        disabled={busy}
-      />
+      <div className="space-y-3">
+        <MultiPhotoPicker
+          label="Confirm handover with photo(s)"
+          helper="Take or upload one or more photos as you hand the item over. Add extras if you want to document any pre-existing damage. This starts the loan clock."
+          onFiles={confirmHandover}
+          disabled={busy}
+        />
+        <div className="border-t border-cream-200 pt-3 space-y-2">
+          <CancelHandoverButton loanId={loan.id} />
+          <OpenDisputeForm
+            loanId={loan.id}
+            promptLabel="Something's wrong — open a dispute"
+            hint="Use this if there's an issue you can't resolve directly with the borrower."
+          />
+        </div>
+      </div>
     );
   } else if (loan.status === 'pending_handover' && !isLender) {
-    body = <Hint>Waiting for the lender to confirm handover with a photo.</Hint>;
+    body = (
+      <div className="space-y-3">
+        <Hint>Waiting for the lender to confirm handover with a photo.</Hint>
+        <OpenDisputeForm
+          loanId={loan.id}
+          promptLabel="Lender isn't responding — open a dispute"
+          hint="Only do this if the lender has gone silent. An admin will review."
+        />
+      </div>
+    );
   } else if (loan.status === 'active' && !isLender) {
     body = (
-      <button onClick={initiateReturn} disabled={busy} className="btn-primary w-full">
-        I&apos;ve returned the item
-      </button>
+      <div className="space-y-3">
+        <button onClick={initiateReturn} disabled={busy} className="btn-primary w-full">
+          I&apos;ve returned the item
+        </button>
+        <OpenDisputeForm
+          loanId={loan.id}
+          promptLabel="Something's wrong — open a dispute"
+          hint="Use this if there's an issue you can't resolve directly with the lender."
+        />
+      </div>
     );
   } else if (loan.status === 'active' && isLender) {
     body = (
@@ -140,21 +168,48 @@ export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean 
         <button onClick={recallItem} disabled={busy} className="btn-secondary w-full">
           Recall — I need it back
         </button>
+        <OpenDisputeForm
+          loanId={loan.id}
+          promptLabel="Item didn't come back — open a dispute"
+          hint="Use this only if you've already tried recalling and the borrower isn't returning the item."
+        />
       </div>
     );
   } else if (loan.status === 'pending_return' && isLender) {
     body = (
-      <MultiPhotoPicker
-        label="Confirm return with photo(s)"
-        helper="Photo(s) of the item back in your possession. Add extras to document any new damage if needed. This completes the loan."
-        onFiles={confirmReturn}
-        disabled={busy}
-      />
+      <div className="space-y-3">
+        <MultiPhotoPicker
+          label="Confirm return with photo(s)"
+          helper="Photo(s) of the item back in your possession. Add extras to document any new damage if needed. This completes the loan."
+          onFiles={confirmReturn}
+          disabled={busy}
+        />
+        <OpenDisputeForm
+          loanId={loan.id}
+          promptLabel="Item didn't come back — open a dispute"
+          hint="Use this if the borrower marked it returned but you never got it back."
+        />
+      </div>
     );
   } else if (loan.status === 'pending_return' && !isLender) {
-    body = <Hint>Waiting for the lender to confirm receipt with a photo.</Hint>;
+    body = (
+      <div className="space-y-3">
+        <Hint>Waiting for the lender to confirm receipt with a photo.</Hint>
+        <OpenDisputeForm
+          loanId={loan.id}
+          promptLabel="Lender isn't confirming — open a dispute"
+          hint="Use this if you've returned the item and the lender isn't responding. An admin will review and may force-complete the loan."
+        />
+      </div>
+    );
   } else if (loan.status === 'completed') {
     body = <Hint>This loan is complete. Karma earned.</Hint>;
+  } else if (loan.status === 'cancelled') {
+    body = <Hint>This loan was cancelled before handover.</Hint>;
+  } else if (loan.status === 'lost') {
+    body = <Hint>This loan was resolved as lost — the item didn&apos;t come back.</Hint>;
+  } else if (loan.status === 'disputed') {
+    body = <Hint>This loan is in dispute. See the banner above for details.</Hint>;
   }
 
   return (
