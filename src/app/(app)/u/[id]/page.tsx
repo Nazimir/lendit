@@ -7,6 +7,7 @@ import { Stars } from '@/components/Stars';
 import { ItemCard } from '@/components/ItemCard';
 import { SafetyMenu } from '@/components/SafetyMenu';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { AwayBadge } from '@/components/AwayBadge';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { dateLabel } from '@/lib/utils';
 import type { Profile, Review, Item, ItemWithOwner } from '@/lib/types';
@@ -71,6 +72,7 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
                 {' · '}
                 {profile.karma_points} karma
               </span>
+              <AwayBadge awayUntil={profile.away_until} />
             </div>
           </div>
           {!isMe && user && (

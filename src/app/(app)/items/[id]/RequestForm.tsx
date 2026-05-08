@@ -33,6 +33,19 @@ export function RequestForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  async function cancelRequest() {
+    if (!existing) return;
+    if (!confirm('Cancel this request? The lender will no longer be able to accept it.')) return;
+    setBusy(true); setError(null);
+    const sb = createClient();
+    const { error } = await sb.from('borrow_requests')
+      .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+      .eq('id', existing.id);
+    setBusy(false);
+    if (error) { setError(error.message); return; }
+    router.refresh();
+  }
+
   // Already have a request in flight for this item?
   if (existing && existing.status === 'pending') {
     const isChain = !!existing.chain_after_loan_id;
@@ -48,6 +61,14 @@ export function RequestForm({
             : "You've already asked. The lender will see your message."}
         </p>
         <Link href={`/messages/${ownerId}`} className="btn-secondary mt-3 w-full">Open thread</Link>
+        <button
+          onClick={cancelRequest}
+          disabled={busy}
+          className="btn-secondary mt-2 w-full text-sm py-2"
+        >
+          {busy ? 'Cancelling…' : 'Cancel this request'}
+        </button>
+        {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
       </div>
     );
   }

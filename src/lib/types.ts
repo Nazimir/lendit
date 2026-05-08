@@ -1,7 +1,18 @@
 // Shared TypeScript types mirroring the Supabase schema.
 
 export type RequestStatus = 'pending' | 'accepted' | 'declined' | 'cancelled' | 'expired';
-export type LoanStatus = 'pending_handover' | 'active' | 'pending_return' | 'completed' | 'disputed';
+export type LoanStatus = 'pending_handover' | 'active' | 'pending_return' | 'completed' | 'disputed' | 'cancelled' | 'lost';
+
+export interface Dispute {
+  id: string;
+  loan_id: string;
+  opened_by: string;
+  reason: string;
+  status: DisputeStatus;
+  resolution_note: string | null;
+  created_at: string;
+  resolved_at: string | null;
+}
 export type DisputeStatus = 'open' | 'resolved';
 export type ExtensionStatus = 'pending' | 'approved' | 'denied' | 'cancelled';
 export type LendInviteStatus = 'pending' | 'claimed' | 'expired' | 'cancelled';
@@ -50,6 +61,7 @@ export interface Profile {
   is_banned: boolean;
   banned_at: string | null;
   banned_reason: string | null;
+  away_until: string | null;
   created_at: string;
   updated_at: string;
 }

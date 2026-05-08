@@ -9,6 +9,7 @@ import { Extensions } from './Extensions';
 import { ChainHandoff } from './ChainHandoff';
 import { RetractDisputeButton } from './RetractDisputeButton';
 import { Lightbox } from '@/components/Lightbox';
+import { AwayBadge } from '@/components/AwayBadge';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { dateLabel, timeAgo } from '@/lib/utils';
 import type { Loan, Item, Profile, Review, LoanExtension, BorrowRequest, Dispute } from '@/lib/types';
@@ -96,13 +97,16 @@ export default async function LoanDetailPage({ params }: { params: { id: string 
                 </Link>
               </div>
               <div
-                className="mt-2 pt-2 border-t-2 font-mono text-[10px] uppercase tracking-wider opacity-80"
+                className="mt-2 pt-2 border-t-2 font-mono text-[10px] uppercase tracking-wider opacity-80 flex items-center gap-2 flex-wrap"
                 style={{ borderColor: palette.accent }}
               >
-                {isLender ? 'Lending to' : 'Borrowing from'}{' '}
-                <Link href={`/u/${otherId}`} className="font-medium underline">
-                  {(other as Profile)?.first_name}
-                </Link>
+                <span>
+                  {isLender ? 'Lending to' : 'Borrowing from'}{' '}
+                  <Link href={`/u/${otherId}`} className="font-medium underline">
+                    {(other as Profile)?.first_name}
+                  </Link>
+                </span>
+                <AwayBadge awayUntil={(other as Profile)?.away_until} />
               </div>
             </div>
           );
@@ -130,6 +134,8 @@ export default async function LoanDetailPage({ params }: { params: { id: string 
         )}
 
         <Timeline loan={loan as Loan} />
+
+        <HandoverCountdown loan={loan as Loan} otherAwayUntil={(other as Profile)?.away_until} />
 
         <div className="mt-5">
           <LoanActions loan={loan as Loan} isLender={isLender} />
@@ -203,6 +209,40 @@ function DisputeBanner({
           <RetractDisputeButton disputeId={dispute.id} />
         </div>
       )}
+    </div>
+  );
+}
+
+function HandoverCountdown({
+  loan, otherAwayUntil
+}: {
+  loan: Loan;
+  otherAwayUntil: string | null | undefined;
+}) {
+  if (loan.status !== 'pending_handover') return null;
+
+  const created = new Date(loan.created_at);
+  const cancelAt = new Date(created.getTime() + 7 * 86_400_000);
+  const now = new Date();
+  const daysLeft = Math.ceil((cancelAt.getTime() - now.getTime()) / 86_400_000);
+
+  // If lender is away, the timer is paused. Surface that.
+  const lenderAway = otherAwayUntil && new Date(otherAwayUntil) > now;
+  if (lenderAway) {
+    return (
+      <div className="mt-4 card p-3 border-2 border-butter-soft bg-butter-soft/30 text-xs text-gray-700">
+        Auto-cancel paused — the lender is in away mode. The timer resumes when they&apos;re back.
+      </div>
+    );
+  }
+
+  if (daysLeft > 4) return null; // only surface in the last 4 days
+
+  return (
+    <div className="mt-4 card p-3 border-2 border-rose-soft bg-butter-soft/30 text-xs text-gray-700">
+      <strong>Heads up:</strong>{' '}
+      this loan will auto-cancel in {daysLeft <= 0 ? 'less than a day' : `${daysLeft} day${daysLeft === 1 ? '' : 's'}`} if the handover doesn&apos;t happen.
+      Confirm with a photo above, or cancel it manually.
     </div>
   );
 }

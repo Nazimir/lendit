@@ -5,7 +5,9 @@ import { ProfileEditor } from './ProfileEditor';
 import { SignOut } from './SignOut';
 import { AvatarUploader } from './AvatarUploader';
 import { DeleteAccount } from './DeleteAccount';
+import { AwayModeToggle } from './AwayModeToggle';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { AwayBadge } from '@/components/AwayBadge';
 import { REQUIRE_PHONE_VERIFICATION } from '@/lib/featureFlags';
 import Link from 'next/link';
 import type { Profile, Review } from '@/lib/types';
@@ -45,6 +47,7 @@ export default async function ProfilePage() {
                 {' · '}
                 {profile?.karma_points ?? 0} karma
               </span>
+              <AwayBadge awayUntil={profile?.away_until} />
             </div>
             {REQUIRE_PHONE_VERIFICATION && !profile?.phone_verified && (
               <Link
@@ -59,6 +62,10 @@ export default async function ProfilePage() {
 
         <div className="mt-5">
           <ProfileEditor profile={profile} />
+        </div>
+
+        <div className="mt-3">
+          <AwayModeToggle profile={profile} />
         </div>
 
         <div className="mt-3 text-center">

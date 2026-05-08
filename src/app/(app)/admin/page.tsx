@@ -60,6 +60,14 @@ export default async function AdminPage({ searchParams }: { searchParams: { stat
       <PageHeader title="Admin" />
       <div className="px-4 max-w-3xl mx-auto pb-8">
         <div className="flex gap-2 mb-4">
+          <span className="font-mono text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-accent-400 text-white">
+            Reports
+          </span>
+          <Link href="/admin/disputes" className="font-mono text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-cream-200 text-gray-600">
+            Disputes
+          </Link>
+        </div>
+        <div className="flex gap-2 mb-4">
           {['open', 'actioned', 'dismissed', 'all'].map(s => (
             <Link
               key={s}
