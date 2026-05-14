@@ -21,20 +21,24 @@ export function Wordmark({
   href?: string;
   className?: string;
 }) {
+  // The dot is positioned so its CENTER sits on the text baseline of the
+  // wordmark. We use the default inline baseline alignment of inline-block
+  // (the bottom of the dot box aligns to the text baseline) and then push
+  // the dot down by half its own height with translateY(50%) — so the
+  // baseline now bisects the dot.
   const content = (
     <span
-      className={`font-display tracking-[-0.03em] text-ink inline-flex items-end ${className}`}
-      style={{ fontSize: size, lineHeight: 1, fontWeight: 800 }}
+      className={`font-display tracking-[-0.03em] text-ink ${className}`}
+      style={{ fontSize: size, lineHeight: 1, fontWeight: 800, whiteSpace: 'nowrap' }}
     >
-      partaz
-      <span
+      partaz<span
         aria-hidden
-        className="bg-partaz inline-block rounded-full"
+        className="bg-partaz inline-block rounded-full align-baseline"
         style={{
           width: '0.18em',
           height: '0.18em',
-          marginBottom: '0.12em',
-          marginLeft: '0.04em'
+          marginLeft: '0.04em',
+          transform: 'translateY(50%)'
         }}
       />
     </span>
