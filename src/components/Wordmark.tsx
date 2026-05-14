@@ -22,23 +22,25 @@ export function Wordmark({
   className?: string;
 }) {
   // The dot is positioned so its CENTER sits on the text baseline of the
-  // wordmark. We use the default inline baseline alignment of inline-block
-  // (the bottom of the dot box aligns to the text baseline) and then push
-  // the dot down by half its own height with translateY(50%) — so the
-  // baseline now bisects the dot.
+  // wordmark. inline-flex with items-end aligns the dot's bottom edge to
+  // the bottom of the line box (= bottom of descender zone). We then lift
+  // the dot up by ~0.22em (the approximate descender depth of Bricolage
+  // Grotesque) less half the dot's height (0.09em) — net 0.13em — which
+  // puts the dot's center on the baseline of "z".
   const content = (
     <span
-      className={`font-display tracking-[-0.03em] text-ink ${className}`}
+      className={`font-display tracking-[-0.03em] text-ink inline-flex items-end ${className}`}
       style={{ fontSize: size, lineHeight: 1, fontWeight: 800, whiteSpace: 'nowrap' }}
     >
-      partaz<span
+      partaz
+      <span
         aria-hidden
-        className="bg-partaz inline-block rounded-full align-baseline"
+        className="bg-partaz inline-block rounded-full"
         style={{
           width: '0.18em',
           height: '0.18em',
-          marginLeft: '0.04em',
-          transform: 'translateY(50%)'
+          marginBottom: '0.13em',
+          marginLeft: '0.04em'
         }}
       />
     </span>
