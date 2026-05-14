@@ -4,6 +4,8 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { Wordmark } from '@/components/Wordmark';
+import { Mono, Italic } from '@/components/typography';
 
 function LoginInner() {
   const router = useRouter();
@@ -25,31 +27,65 @@ function LoginInner() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-10">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="inline-block w-12 h-12 rounded-2xl bg-accent-400 mb-3" />
-          <h1 className="text-2xl font-semibold">Welcome back</h1>
-          <p className="text-gray-500 text-sm mt-1">Sign in to Partaz</p>
+    <main className="min-h-screen bg-paper px-6 py-12 flex flex-col">
+      <div className="w-full max-w-md mx-auto flex-1 flex flex-col">
+        <div className="flex justify-between items-center mb-2">
+          <Wordmark size={22} asLink={false} />
+          <Mono className="text-ink-soft">Mauritius · v0.1</Mono>
         </div>
-        <form onSubmit={onSubmit} className="space-y-3">
-          <div>
+
+        <div className="mt-12">
+          <h1 className="font-display font-extrabold text-[64px] leading-[0.85] tracking-[-0.045em] text-ink">
+            Welcome <Italic>back</Italic>.
+          </h1>
+          <p className="font-display font-medium text-[17px] leading-[1.4] text-ink-soft mt-4">
+            Pick up where you left off.
+          </p>
+        </div>
+
+        <form onSubmit={onSubmit} className="mt-10 flex-1">
+          <div className="mb-6">
             <label className="label">Email</label>
-            <input className="input" type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
+            <input
+              className="input"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+            />
           </div>
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="label !mb-0">Password</label>
-              <Link href="/forgot" className="text-xs text-accent-600 hover:underline">Forgot?</Link>
+          <div className="mb-2">
+            <div className="flex items-center justify-between mb-2">
+              <label className="label mb-0">Password</label>
+              <Link href="/forgot" className="font-mono text-[10px] uppercase tracking-mono text-ink-soft hover:text-ink">
+                Forgot?
+              </Link>
             </div>
-            <input className="input" type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} />
+            <input
+              className="input"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+            />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <button className="btn-primary w-full" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+
+          {error && <p className="font-italic italic text-sm text-cat-tools mt-4">{error}</p>}
+
+          <button className="btn-primary w-full mt-10 flex justify-between items-center" disabled={busy}>
+            <span>{busy ? 'Signing in…' : <>Sign <Italic>in</Italic></>}</span>
+            <span aria-hidden>→</span>
+          </button>
         </form>
-        <p className="text-center text-sm text-gray-600 mt-6">
-          New to Partaz? <Link href="/signup" className="text-accent-600 font-medium">Create an account</Link>
-        </p>
+
+        <div className="mt-6 text-center">
+          <Mono className="text-ink-soft">
+            New here?{' '}
+            <Link href="/signup" className="text-ink underline">Make a shelf</Link>
+          </Mono>
+        </div>
       </div>
     </main>
   );

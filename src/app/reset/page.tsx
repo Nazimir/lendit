@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { Wordmark } from '@/components/Wordmark';
+import { Mono, Italic } from '@/components/typography';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -14,9 +16,6 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
-  // The recovery email link drops a temporary session into the URL hash.
-  // supabase-js parses it automatically on init. We just need to wait a beat
-  // and then check whether we ended up with a session.
   useEffect(() => {
     const sb = createClient();
     sb.auth.getSession().then(({ data: { session } }) => {
@@ -46,43 +45,64 @@ export default function ResetPasswordPage() {
 
   if (hasSession === null) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-6">
-        <p className="text-sm text-gray-500">Checking link…</p>
+      <main className="min-h-screen bg-paper flex flex-col items-center justify-center px-6">
+        <Mono className="text-ink-soft">Checking link…</Mono>
       </main>
     );
   }
 
   if (!hasSession) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-6 py-10">
-        <div className="w-full max-w-sm card p-6 text-center space-y-3">
-          <h1 className="text-2xl font-semibold">Link invalid or expired</h1>
-          <p className="text-sm text-gray-600">
-            This reset link can&apos;t be used. It may have already been used,
-            or it may have expired (links last about an hour).
-          </p>
-          <Link href="/forgot" className="btn-primary inline-block mt-2">Request a new link</Link>
+      <main className="min-h-screen bg-paper px-6 py-12 flex flex-col">
+        <div className="w-full max-w-md mx-auto flex-1 flex flex-col">
+          <div className="flex justify-between items-center mb-2">
+            <Wordmark size={22} />
+            <Mono className="text-ink-soft">Recovery</Mono>
+          </div>
+          <div className="mt-12 border-y-[1.5px] border-ink py-6">
+            <h1 className="font-display font-extrabold text-[40px] leading-[0.9] tracking-[-0.035em] text-ink">
+              Link <Italic>invalid</Italic> or expired.
+            </h1>
+            <p className="text-sm text-ink-soft mt-3">
+              This reset link can&apos;t be used. It may have already been used, or it may have expired (links last about an hour).
+            </p>
+            <Link href="/forgot" className="btn-primary inline-flex mt-6 justify-between items-center">
+              <span>Request a new <Italic>link</Italic></span>
+              <span aria-hidden>→</span>
+            </Link>
+          </div>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-10">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="inline-block w-12 h-12 rounded-2xl bg-accent-400 mb-3" />
-          <h1 className="text-2xl font-semibold">Set a new password</h1>
+    <main className="min-h-screen bg-paper px-6 py-12 flex flex-col">
+      <div className="w-full max-w-md mx-auto flex-1 flex flex-col">
+        <div className="flex justify-between items-center mb-2">
+          <Wordmark size={22} />
+          <Mono className="text-ink-soft">Recovery</Mono>
+        </div>
+
+        <div className="mt-12">
+          <h1 className="font-display font-extrabold text-[56px] leading-[0.85] tracking-[-0.045em] text-ink">
+            Set a <Italic>new</Italic> one.
+          </h1>
+          <p className="font-display font-medium text-[16px] leading-[1.4] text-ink-soft mt-4">
+            Pick a password you can remember. Eight characters minimum.
+          </p>
         </div>
 
         {done ? (
-          <div className="card p-5 text-center">
-            <p className="text-accent-700 font-medium">Password updated.</p>
-            <p className="text-sm text-gray-600 mt-1">Taking you to the app…</p>
+          <div className="mt-10 border-y-[1.5px] border-ink py-6">
+            <h2 className="font-display font-bold text-[24px] leading-tight tracking-[-0.02em] text-ink">
+              Password <Italic>updated</Italic>.
+            </h2>
+            <Mono className="text-ink-soft mt-2 block">Taking you to the app…</Mono>
           </div>
         ) : (
-          <form onSubmit={onSubmit} className="space-y-3">
-            <div>
+          <form onSubmit={onSubmit} className="mt-10">
+            <div className="mb-6">
               <label className="label">New password</label>
               <input
                 className="input"
@@ -93,9 +113,9 @@ export default function ResetPasswordPage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
               />
-              <p className="text-xs text-gray-500 mt-1">8+ characters.</p>
+              <Mono className="text-ink-soft mt-2 block">8+ characters</Mono>
             </div>
-            <div>
+            <div className="mb-6">
               <label className="label">Confirm new password</label>
               <input
                 className="input"
@@ -107,9 +127,10 @@ export default function ResetPasswordPage() {
                 onChange={e => setConfirm(e.target.value)}
               />
             </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <button className="btn-primary w-full" disabled={busy}>
-              {busy ? 'Saving…' : 'Update password'}
+            {error && <p className="font-italic italic text-sm text-cat-tools mt-3">{error}</p>}
+            <button className="btn-primary w-full mt-8 flex justify-between items-center" disabled={busy}>
+              <span>{busy ? 'Saving…' : <>Update <Italic>password</Italic></>}</span>
+              <span aria-hidden>→</span>
             </button>
           </form>
         )}

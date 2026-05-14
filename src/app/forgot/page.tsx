@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { Wordmark } from '@/components/Wordmark';
+import { Mono, Italic } from '@/components/typography';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -23,28 +25,38 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-10">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="inline-block w-12 h-12 rounded-2xl bg-accent-400 mb-3" />
-          <h1 className="text-2xl font-semibold">Reset your password</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            We&apos;ll send a link to your email that lets you set a new one.
+    <main className="min-h-screen bg-paper px-6 py-12 flex flex-col">
+      <div className="w-full max-w-md mx-auto flex-1 flex flex-col">
+        <div className="flex justify-between items-center mb-2">
+          <Wordmark size={22} />
+          <Mono className="text-ink-soft">Recovery</Mono>
+        </div>
+
+        <div className="mt-12">
+          <h1 className="font-display font-extrabold text-[56px] leading-[0.85] tracking-[-0.045em] text-ink text-balance">
+            Forgot <Italic>your</Italic> way in?
+          </h1>
+          <p className="font-display font-medium text-[16px] leading-[1.4] text-ink-soft mt-4 text-pretty">
+            Tell us the email you used. We&apos;ll send a link that lets you set a new password.
           </p>
         </div>
 
         {sent ? (
-          <div className="card p-5 text-center space-y-3">
-            <p className="text-accent-700 font-medium">Check your email.</p>
-            <p className="text-sm text-gray-600">
-              If an account exists for {email}, a reset link is on its way.
+          <div className="mt-10 border-y-[1.5px] border-ink py-6">
+            <h2 className="font-display font-bold text-[24px] leading-tight tracking-[-0.02em] text-ink">
+              Check your <Italic>email</Italic>.
+            </h2>
+            <p className="text-sm text-ink-soft mt-3">
+              If an account exists for <strong className="text-ink">{email}</strong>, a reset link is on its way.
               The link expires in about an hour.
             </p>
-            <Link href="/login" className="btn-secondary inline-block mt-2">Back to sign in</Link>
+            <Link href="/login" className="btn-secondary inline-flex mt-6">
+              Back to sign in
+            </Link>
           </div>
         ) : (
-          <form onSubmit={onSubmit} className="space-y-3">
-            <div>
+          <form onSubmit={onSubmit} className="mt-10">
+            <div className="mb-6">
               <label className="label">Email</label>
               <input
                 className="input"
@@ -55,17 +67,20 @@ export default function ForgotPasswordPage() {
                 onChange={e => setEmail(e.target.value)}
               />
             </div>
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <button className="btn-primary w-full" disabled={busy}>
-              {busy ? 'Sending…' : 'Send reset link'}
+            {error && <p className="font-italic italic text-sm text-cat-tools mt-3">{error}</p>}
+            <button className="btn-primary w-full mt-8 flex justify-between items-center" disabled={busy}>
+              <span>{busy ? 'Sending…' : <>Send the <Italic>link</Italic></>}</span>
+              <span aria-hidden>→</span>
             </button>
           </form>
         )}
 
-        <p className="text-center text-sm text-gray-600 mt-6">
-          Remembered it?{' '}
-          <Link href="/login" className="text-accent-600 font-medium">Sign in</Link>
-        </p>
+        <div className="mt-auto pt-8 text-center">
+          <Mono className="text-ink-soft">
+            Remembered it?{' '}
+            <Link href="/login" className="text-ink underline">Sign in</Link>
+          </Mono>
+        </div>
       </div>
     </main>
   );

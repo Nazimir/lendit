@@ -6,12 +6,17 @@ import { createClient } from '@/lib/supabase/client';
 import type { Message, Item } from '@/lib/types';
 
 export function Thread({
-  meId, otherId, initialMessages, contextItems
+  meId, otherId, initialMessages, contextItems, myBubbleBg, myBubbleColor
 }: {
   meId: string;
   otherId: string;
   initialMessages: Message[];
   contextItems: Item[];
+  /** Background colour for the current user's outgoing bubbles. Defaults
+      to ink if not provided (falls back to old behaviour). */
+  myBubbleBg?: string;
+  /** Text colour to use on the user's bubbles. */
+  myBubbleColor?: string;
 }) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [items, setItems] = useState<Map<string, Item>>(
@@ -91,13 +96,18 @@ export function Thread({
                 const ctx = m.context_item_id ? items.get(m.context_item_id) : null;
                 return (
                   <div key={m.id} className={'flex flex-col ' + (mine ? 'items-end' : 'items-start')}>
-                    <div className={'max-w-[80%] rounded-2xl px-1 py-1 text-sm ' +
-                      (mine ? 'bg-accent-400 text-white rounded-br-md' : 'bg-cream-200 text-accent-900 rounded-bl-md')
-                    }>
+                    <div
+                      className={'max-w-[80%] rounded-2xl px-1 py-1 text-sm ' +
+                        (mine ? 'rounded-br-md' : 'bg-paper-soft text-ink rounded-bl-md')
+                      }
+                      style={mine
+                        ? { background: myBubbleBg || '#16130D', color: myBubbleColor || '#F2ECE0' }
+                        : undefined}
+                    >
                       {ctx && <ContextCard item={ctx} mine={mine} />}
                       <div className="px-2.5 py-1.5 whitespace-pre-wrap">{m.body}</div>
                     </div>
-                    <span className={'text-[10px] mt-0.5 ' + (mine ? 'text-gray-400 mr-1' : 'text-gray-400 ml-1')}>
+                    <span className={'text-[10px] mt-0.5 text-ink-soft/60 ' + (mine ? 'mr-1' : 'ml-1')}>
                       {timeOnly(m.created_at)}
                     </span>
                   </div>

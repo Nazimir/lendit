@@ -1,6 +1,8 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { PageHeader } from '@/components/PageHeader';
+import { Wordmark } from '@/components/Wordmark';
+import { Mono } from '@/components/typography';
 import { VerifyGate } from '@/components/VerifyGate';
 import { REQUIRE_PHONE_VERIFICATION } from '@/lib/featureFlags';
 import { NewListingForm } from './NewListingForm';
@@ -16,9 +18,17 @@ export default async function NewListingPage() {
     const { data: me } = await supabase.from('profiles').select('phone_verified').eq('id', user.id).single();
     if (!me?.phone_verified) {
       return (
-        <main>
-          <PageHeader title="New listing" back="/listings" />
-          <div className="px-4 max-w-2xl mx-auto pb-8">
+        <main className="min-h-screen bg-paper px-6 py-10 flex flex-col">
+          <div className="w-full max-w-2xl mx-auto">
+            <div className="flex justify-between items-center mb-10">
+              <Wordmark size={22} />
+              <div className="flex items-center gap-3">
+                <Link href="/listings" className="text-ink-soft hover:text-ink">
+                  <Mono>← Shelf</Mono>
+                </Link>
+                <Mono className="text-ink-soft">New entry</Mono>
+              </div>
+            </div>
             <VerifyGate action="post a listing" next="/listings/new" />
           </div>
         </main>
@@ -26,10 +36,5 @@ export default async function NewListingPage() {
     }
   }
 
-  return (
-    <main>
-      <PageHeader title="New listing" back="/listings" />
-      <NewListingForm />
-    </main>
-  );
+  return <NewListingForm />;
 }

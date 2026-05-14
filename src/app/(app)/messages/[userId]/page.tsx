@@ -5,6 +5,8 @@ import { PageHeader } from '@/components/PageHeader';
 import { Avatar } from '@/components/Avatar';
 import { SafetyMenu } from '@/components/SafetyMenu';
 import { Thread } from './Thread';
+import { paletteForCategory } from '@/lib/categoryStyle';
+import { territoryForProfile } from '@/lib/personalTerritory';
 import type { Profile, Message, Item } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -15,8 +17,9 @@ export default async function ConversationPage({ params }: { params: { userId: s
   if (!user) redirect('/login');
   if (user.id === params.userId) redirect('/messages');
 
-  const [{ data: other }, { data: msgs }] = await Promise.all([
+  const [{ data: other }, { data: me }, { data: msgs }] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', params.userId).single(),
+    supabase.from('profiles').select('id, territory_override').eq('id', user.id).single(),
     supabase.from('messages').select('*')
       .or(
         `and(sender_id.eq.${user.id},recipient_id.eq.${params.userId}),` +
@@ -26,6 +29,11 @@ export default async function ConversationPage({ params }: { params: { userId: s
   ]);
 
   if (!other) notFound();
+
+  // My bubble colour = my personal territory (whatever I last shuffled to).
+  const myPalette = paletteForCategory(
+    territoryForProfile(me as { id: string; territory_override: string | null })
+  );
 
   // Pre-fetch any items referenced via context_item_id so the thread can
   // render reply-style preview cards.
@@ -67,6 +75,8 @@ export default async function ConversationPage({ params }: { params: { userId: s
           otherId={params.userId}
           initialMessages={messages}
           contextItems={items}
+          myBubbleBg={myPalette.bg}
+          myBubbleColor={myPalette.ink}
         />
       </div>
     </main>

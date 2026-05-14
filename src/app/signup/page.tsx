@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeImage } from '@/lib/imageUpload';
 import { ProgressBanner } from '@/components/Spinner';
+import { Wordmark } from '@/components/Wordmark';
+import { Mono, Italic } from '@/components/typography';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -41,8 +43,6 @@ export default function SignupPage() {
     });
     if (error) { setError(error.message); setBusy(false); setProgress(null); return; }
 
-    // If a photo was supplied and we have an active session, upload it now.
-    // HEIC files (iPhone defaults) are auto-converted to JPEG.
     const userId = data.user?.id;
     if (userId && photoFile) {
       const isHeic = /\.hei[cf]$/i.test(photoFile.name) || /heic|heif/i.test(photoFile.type);
@@ -61,7 +61,6 @@ export default function SignupPage() {
       }
     }
 
-    // Stamp consent on the profile row (created by the on_auth_user_created trigger)
     if (userId) {
       await supabase
         .from('profiles')
@@ -83,61 +82,86 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-10">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="inline-block w-12 h-12 rounded-2xl bg-accent-400 mb-3" />
-          <h1 className="text-2xl font-semibold">Join Partaz</h1>
-          <p className="text-gray-500 text-sm mt-1">Borrow stuff from your neighbours</p>
+    <main className="min-h-screen bg-paper px-6 py-12 flex flex-col">
+      <div className="w-full max-w-md mx-auto flex-1 flex flex-col">
+        <div className="flex justify-between items-center mb-2">
+          <Wordmark size={22} asLink={false} />
+          <Mono className="text-ink-soft">Mauritius · v0.1</Mono>
         </div>
-        <form onSubmit={onSubmit} className="space-y-3">
-          <div>
+
+        <div className="mt-10">
+          <h1 className="font-display font-extrabold text-[64px] leading-[0.85] tracking-[-0.045em] text-ink text-balance">
+            Borrow<br /><Italic>before</Italic> you buy.
+          </h1>
+          <p className="font-display font-medium text-[17px] leading-[1.4] text-ink-soft mt-4 text-pretty">
+            A neighbourhood shelf. Free, forever. First-name basis. Bring it back when you&apos;re done.
+          </p>
+        </div>
+
+        <form onSubmit={onSubmit} className="mt-10">
+          <div className="mb-6">
             <label className="label">First name</label>
-            <input className="input" required value={firstName} onChange={e => setFirstName(e.target.value)} />
+            <input className="input" required value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="What neighbours call you" />
           </div>
-          <div>
+          <div className="mb-6">
             <label className="label">Suburb / town</label>
-            <input className="input" required placeholder="e.g. Bondi" value={suburb} onChange={e => setSuburb(e.target.value)} />
+            <input className="input" required placeholder="Curepipe, Quatre Bornes…" value={suburb} onChange={e => setSuburb(e.target.value)} />
           </div>
-          <div>
-            <label className="label">Phone</label>
-            <input className="input" type="tel" placeholder="+61 …" value={phone} onChange={e => setPhone(e.target.value)} />
+          <div className="mb-6">
+            <label className="label">Phone (optional)</label>
+            <input className="input" type="tel" placeholder="+230 …" value={phone} onChange={e => setPhone(e.target.value)} />
           </div>
-          <div>
+          <div className="mb-6">
             <label className="label">Profile photo (optional)</label>
-            <input className="input" type="file" accept="image/*" onChange={e => setPhotoFile(e.target.files?.[0] ?? null)} />
+            <input
+              type="file"
+              accept="image/*"
+              capture="user"
+              onChange={e => setPhotoFile(e.target.files?.[0] ?? null)}
+              className="input"
+            />
           </div>
-          <div>
+          <div className="mb-6">
             <label className="label">Email</label>
             <input className="input" type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
           </div>
-          <div>
+          <div className="mb-6">
             <label className="label">Password</label>
             <input className="input" type="password" autoComplete="new-password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} />
-            <p className="text-xs text-gray-500 mt-1">8+ characters.</p>
+            <Mono className="text-ink-soft mt-2 block">8+ characters</Mono>
           </div>
-          <label className="flex items-start gap-3 card p-3 cursor-pointer">
+
+          <label className="flex items-start gap-3 py-3 cursor-pointer border-t border-ink/15">
             <input
               type="checkbox"
               checked={agreed}
               onChange={e => setAgreed(e.target.checked)}
-              className="h-5 w-5 accent-accent-400 mt-0.5 shrink-0"
+              className="h-5 w-5 mt-0.5 shrink-0 accent-ink"
             />
-            <span className="text-xs text-gray-700">
+            <span className="text-sm text-ink-soft leading-snug">
               I&apos;m 18 or older and I agree to Partaz&apos;s{' '}
-              <Link href="/terms" target="_blank" className="text-accent-700 underline">Terms of Service</Link>
+              <Link href="/terms" target="_blank" className="text-ink underline">Terms</Link>
               {' '}and{' '}
-              <Link href="/privacy" target="_blank" className="text-accent-700 underline">Privacy Policy</Link>.
+              <Link href="/privacy" target="_blank" className="text-ink underline">Privacy Policy</Link>.
             </span>
           </label>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          {info && <p className="text-sm text-accent-700">{info}</p>}
-          {progress && <ProgressBanner message={progress} />}
-          <button className="btn-primary w-full" disabled={busy}>{busy ? 'Creating…' : 'Create account'}</button>
+
+          {error && <p className="font-italic italic text-sm text-cat-tools mt-3">{error}</p>}
+          {info && <p className="font-italic italic text-sm text-ink mt-3">{info}</p>}
+          {progress && <div className="mt-3"><ProgressBanner message={progress} /></div>}
+
+          <button className="btn-primary w-full mt-8 flex justify-between items-center" disabled={busy}>
+            <span>{busy ? 'Setting up…' : <>Make a <Italic>shelf</Italic></>}</span>
+            <span aria-hidden>→</span>
+          </button>
         </form>
-        <p className="text-center text-sm text-gray-600 mt-6">
-          Already have an account? <Link href="/login" className="text-accent-600 font-medium">Sign in</Link>
-        </p>
+
+        <div className="mt-6 text-center">
+          <Mono className="text-ink-soft">
+            Already here?{' '}
+            <Link href="/login" className="text-ink underline">Sign in</Link>
+          </Mono>
+        </div>
       </div>
     </main>
   );
