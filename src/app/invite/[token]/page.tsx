@@ -33,7 +33,7 @@ export default async function InvitePage({ params }: { params: { token: string }
     <main className="min-h-screen px-4 py-8 max-w-2xl mx-auto">
       <div className="mb-6 text-center">
         <div className="font-mono text-[10px] uppercase tracking-wider text-gray-500">
-          LendIt · in-person loan
+          Partaz · in-person loan
         </div>
         <h1 className="font-display text-3xl mt-1">
           {(lender as Profile).first_name} wants to lend you something

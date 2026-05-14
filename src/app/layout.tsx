@@ -12,10 +12,10 @@ const caveat = Caveat({ subsets: ['latin'], variable: '--font-script', display: 
 const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: 'LendIt',
+  title: 'Partaz',
   description: 'Borrow stuff from your neighbours, free.',
   manifest: '/manifest.webmanifest',
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'LendIt' },
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Partaz' },
   icons: {
     // Standard favicon
     icon: [

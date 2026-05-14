@@ -53,7 +53,7 @@ have placeholdered:
   add or remove items based on regional law (e.g. e-cigarettes, knives by
   blade length, certain camping fuels).
 - **Dispute-resolution clause.** Section 12 says disputes are between users
-  and that LendIt may provide records on request. Consider whether to commit
+  and that Partaz may provide records on request. Consider whether to commit
   to or disclaim a more active mediation role.
 
 ### Privacy Policy
@@ -99,7 +99,7 @@ If counsel disagrees, the product behaviour can be changed.
 
 - **No security deposits, no insurance, no money handling.** Loans are
   free, and the platform takes no payment role.
-- **At-your-own-risk lending.** The lender accepts that LendIt does not
+- **At-your-own-risk lending.** The lender accepts that Partaz does not
   insure their item; the borrower accepts they are responsible for safe
   return.
 - **First-name-only public display.** Other users never see full names, exact

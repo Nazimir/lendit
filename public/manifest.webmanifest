@@ -1,6 +1,6 @@
 {
-  "name": "LendIt",
-  "short_name": "LendIt",
+  "name": "Partaz",
+  "short_name": "Partaz",
   "description": "Borrow stuff from your neighbours, free.",
   "start_url": "/home",
   "display": "standalone",

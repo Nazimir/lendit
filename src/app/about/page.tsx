@@ -1,17 +1,17 @@
 import Link from 'next/link';
 import { LegalPage } from '@/components/LegalPage';
 
-export const metadata = { title: 'About · LendIt' };
+export const metadata = { title: 'About · Partaz' };
 
 export default function AboutPage() {
   return (
-    <LegalPage title="About LendIt" lastUpdated="May 2026">
+    <LegalPage title="About Partaz" lastUpdated="May 2026">
       <p className="font-script text-2xl text-accent-600 not-italic">
         A community lending library, between people.
       </p>
 
       <p>
-        LendIt is a free peer-to-peer platform for borrowing things you only
+        Partaz is a free peer-to-peer platform for borrowing things you only
         need once in a while. List the drill collecting dust in your cupboard,
         the camping gear you use twice a year, the book you&rsquo;ve already
         read. Borrow from your neighbours instead of buying.
@@ -34,7 +34,7 @@ export default function AboutPage() {
 
       <H>What it is, and isn&rsquo;t</H>
       <p>
-        LendIt is free, non-commercial, and built around trust between
+        Partaz is free, non-commercial, and built around trust between
         neighbours. It is not a rental marketplace, a delivery service, or an
         insurance product. We don&rsquo;t hold your money or your stuff. We
         just make it easier to find each other.

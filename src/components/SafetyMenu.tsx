@@ -134,7 +134,7 @@ function ReportModal({
       <div className="card p-5 max-w-md w-full">
         <h2 className="font-display text-2xl">Report {context}</h2>
         <p className="text-sm text-gray-600 mt-1">
-          Reports go to LendIt moderators. They&apos;re confidential — the
+          Reports go to Partaz moderators. They&apos;re confidential — the
           reported user isn&apos;t told who reported them.
         </p>
         {done ? (

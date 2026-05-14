@@ -1,12 +1,12 @@
 import { LegalPage } from '@/components/LegalPage';
 
-export const metadata = { title: 'Terms of Service · LendIt' };
+export const metadata = { title: 'Terms of Service · Partaz' };
 
 export default function TermsPage() {
   return (
     <LegalPage title="Terms of Service" lastUpdated="May 2026">
       <p>
-        These Terms of Service (&ldquo;Terms&rdquo;) govern your use of LendIt
+        These Terms of Service (&ldquo;Terms&rdquo;) govern your use of Partaz
         (the &ldquo;Service&rdquo;), a peer-to-peer platform that lets people
         list items they own, browse what others have listed, and arrange to
         borrow and return those items between themselves at no cost.
@@ -14,13 +14,13 @@ export default function TermsPage() {
 
       <H>1. Eligibility</H>
       <p>
-        You must be at least 18 years old to use LendIt. By creating an account
+        You must be at least 18 years old to use Partaz. By creating an account
         you confirm that you meet this requirement.
       </p>
 
       <H>2. The Service is free</H>
       <p>
-        LendIt does not facilitate the sale, rental, or exchange of money for
+        Partaz does not facilitate the sale, rental, or exchange of money for
         items. All loans arranged through the Service are intended to be
         non-commercial. We do not act as a buyer, seller, lender, or agent for
         any transaction. We provide the platform only.
@@ -42,12 +42,12 @@ export default function TermsPage() {
       <p>
         When you borrow an item, you are responsible for its safekeeping and
         for returning it in the condition you received it, ordinary use
-        excepted. When you lend an item, you do so at your own risk: LendIt
+        excepted. When you lend an item, you do so at your own risk: Partaz
         does not insure items, hold security deposits, or guarantee returns.
       </p>
 
       <H>5. Prohibited items and conduct</H>
-      <p>You may not use LendIt to list, lend, request, or transfer:</p>
+      <p>You may not use Partaz to list, lend, request, or transfer:</p>
       <ul className="list-disc pl-6 space-y-1">
         <li>Weapons, ammunition, or items designed primarily to cause harm.</li>
         <li>Drugs, prescription medication, or alcohol.</li>
@@ -70,7 +70,7 @@ export default function TermsPage() {
       <H>6. User content</H>
       <p>
         You retain ownership of the photos, descriptions, messages, and
-        reviews you post. You grant LendIt a non-exclusive, worldwide,
+        reviews you post. You grant Partaz a non-exclusive, worldwide,
         royalty-free licence to host and display this content for the purpose
         of operating the Service.
       </p>
@@ -96,7 +96,7 @@ export default function TermsPage() {
 
       <H>9. Limitation of liability</H>
       <p>
-        To the maximum extent permitted by law, LendIt and its operators are
+        To the maximum extent permitted by law, Partaz and its operators are
         not liable for any indirect, incidental, special, consequential, or
         punitive damages, or for any loss of items, profits, data, or
         goodwill, arising from your use of the Service or any loan arranged
@@ -108,7 +108,7 @@ export default function TermsPage() {
 
       <H>10. Indemnification</H>
       <p>
-        You agree to indemnify and hold LendIt harmless from any claim arising
+        You agree to indemnify and hold Partaz harmless from any claim arising
         from your use of the Service, your breach of these Terms, or your
         violation of any rights of another user or third party.
       </p>
@@ -124,7 +124,7 @@ export default function TermsPage() {
       <H>12. Disputes between users</H>
       <p>
         Disputes arising between users about an item, a loan, or any related
-        matter are between those users. LendIt may, but is not required to,
+        matter are between those users. Partaz may, but is not required to,
         provide records (handover photos, message timestamps) on request.
       </p>
 

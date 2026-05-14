@@ -1,6 +1,8 @@
-# LendIt
+# Partaz
 
 A peer-to-peer item lending app. Like eBay but for borrowing — no money, just neighbours sharing.
+
+> Note: this repo and the Supabase project may still be named `lendit` from the project's original working name. The app brand is now Partaz. Setup commands below still use `lendit` as the repo name — leave that alone unless you also rename the GitHub repo (optional).
 
 ## What you're getting
 

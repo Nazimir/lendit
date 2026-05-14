@@ -8,7 +8,7 @@ export function BannedScreen({ reason }: { reason: string | null }) {
         <div className="w-12 h-12 mx-auto rounded-2xl bg-rose-soft mb-4" />
         <h1 className="font-display text-3xl">Account suspended</h1>
         <p className="text-sm text-gray-700 mt-3">
-          Your LendIt account has been suspended.
+          Your Partaz account has been suspended.
           {reason ? ` Reason: ${reason}` : ''}
         </p>
         <p className="text-xs text-gray-500 mt-3">

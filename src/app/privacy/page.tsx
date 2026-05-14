@@ -1,24 +1,24 @@
 import { LegalPage } from '@/components/LegalPage';
 
-export const metadata = { title: 'Privacy Policy · LendIt' };
+export const metadata = { title: 'Privacy Policy · Partaz' };
 
 export default function PrivacyPage() {
   return (
     <LegalPage title="Privacy Policy" lastUpdated="May 2026">
       <p>
-        This Privacy Policy explains what personal information LendIt collects,
+        This Privacy Policy explains what personal information Partaz collects,
         how we use it, who we share it with, and what rights you have over it.
       </p>
 
       <H>1. Who we are</H>
       <p>
-        LendIt (&ldquo;we&rdquo;, &ldquo;us&rdquo;) operates the LendIt
+        Partaz (&ldquo;we&rdquo;, &ldquo;us&rdquo;) operates the Partaz
         platform. The data controller for your information is [LEGAL ENTITY
         NAME], registered at [ADDRESS].
       </p>
 
       <H>2. Information we collect</H>
-      <p>When you use LendIt, we collect the following:</p>
+      <p>When you use Partaz, we collect the following:</p>
       <ul className="list-disc pl-6 space-y-1">
         <li>
           <strong>Account information:</strong> first name, suburb / town,
@@ -56,7 +56,7 @@ export default function PrivacyPage() {
 
       <H>4. Who sees what</H>
       <p>
-        Other authenticated users of LendIt can see your first name, suburb,
+        Other authenticated users of Partaz can see your first name, suburb,
         profile photo, item listings, reviews about you, and reputation
         score. Your full email address, phone number, and exact location are
         never displayed to other users.
@@ -64,7 +64,7 @@ export default function PrivacyPage() {
 
       <H>5. Sharing with third parties</H>
       <p>
-        We use the following third-party services to operate LendIt:
+        We use the following third-party services to operate Partaz:
       </p>
       <ul className="list-disc pl-6 space-y-1">
         <li>
@@ -125,7 +125,7 @@ export default function PrivacyPage() {
 
       <H>10. Children</H>
       <p>
-        LendIt is not intended for users under 18. We do not knowingly
+        Partaz is not intended for users under 18. We do not knowingly
         collect personal information from minors. If you believe a minor has
         registered, contact us at [privacy@example.com] and we will close the
         account.

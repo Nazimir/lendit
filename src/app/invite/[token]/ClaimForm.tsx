@@ -27,7 +27,7 @@ export function ClaimForm({
     return (
       <div className="card p-5 space-y-3">
         <p className="text-sm text-gray-700">
-          Tap to accept and add this loan to your LendIt account.
+          Tap to accept and add this loan to your Partaz account.
         </p>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button onClick={accept} disabled={busy} className="btn-primary w-full">

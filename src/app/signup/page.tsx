@@ -87,7 +87,7 @@ export default function SignupPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-block w-12 h-12 rounded-2xl bg-accent-400 mb-3" />
-          <h1 className="text-2xl font-semibold">Join LendIt</h1>
+          <h1 className="text-2xl font-semibold">Join Partaz</h1>
           <p className="text-gray-500 text-sm mt-1">Borrow stuff from your neighbours</p>
         </div>
         <form onSubmit={onSubmit} className="space-y-3">
@@ -124,7 +124,7 @@ export default function SignupPage() {
               className="h-5 w-5 accent-accent-400 mt-0.5 shrink-0"
             />
             <span className="text-xs text-gray-700">
-              I&apos;m 18 or older and I agree to LendIt&apos;s{' '}
+              I&apos;m 18 or older and I agree to Partaz&apos;s{' '}
               <Link href="/terms" target="_blank" className="text-accent-700 underline">Terms of Service</Link>
               {' '}and{' '}
               <Link href="/privacy" target="_blank" className="text-accent-700 underline">Privacy Policy</Link>.

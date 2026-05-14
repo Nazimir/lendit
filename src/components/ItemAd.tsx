@@ -155,7 +155,7 @@ export function ItemAd({
       {/* BARCODE-Y FOOTER */}
       <div className="px-5 pb-5 pt-3 border-t-2 mt-2" style={{ borderColor: palette.accent }}>
         <div className="font-mono text-[10px] uppercase tracking-wider opacity-70 flex items-center justify-between">
-          <span>LENDIT · {createdLabel}</span>
+          <span>PARTAZ · {createdLabel}</span>
           <span>NO REFUNDS — JUST RETURNS</span>
         </div>
         <div

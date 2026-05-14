@@ -30,7 +30,7 @@ function LoginInner() {
         <div className="text-center mb-8">
           <div className="inline-block w-12 h-12 rounded-2xl bg-accent-400 mb-3" />
           <h1 className="text-2xl font-semibold">Welcome back</h1>
-          <p className="text-gray-500 text-sm mt-1">Sign in to LendIt</p>
+          <p className="text-gray-500 text-sm mt-1">Sign in to Partaz</p>
         </div>
         <form onSubmit={onSubmit} className="space-y-3">
           <div>
@@ -48,7 +48,7 @@ function LoginInner() {
           <button className="btn-primary w-full" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
         </form>
         <p className="text-center text-sm text-gray-600 mt-6">
-          New to LendIt? <Link href="/signup" className="text-accent-600 font-medium">Create an account</Link>
+          New to Partaz? <Link href="/signup" className="text-accent-600 font-medium">Create an account</Link>
         </p>
       </div>
     </main>

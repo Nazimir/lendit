@@ -1,5 +1,5 @@
 -- =====================================================================
--- LendIt — full database schema
+-- Partaz — full database schema
 -- Run this once in the Supabase SQL Editor.
 -- =====================================================================
 

@@ -268,7 +268,7 @@ function LendInner() {
             <label className="label">Their email</label>
             <input className="input" type="email" value={recipientEmail} onChange={e => setRecipientEmail(e.target.value)} placeholder="sam@example.com" />
             <p className="text-[11px] text-gray-500 mt-1">
-              If they already have a LendIt account on this email, the loan goes straight into their app. Otherwise we&apos;ll generate an invite link for you to share.
+              If they already have a Partaz account on this email, the loan goes straight into their app. Otherwise we&apos;ll generate an invite link for you to share.
             </p>
           </div>
         </div>
@@ -297,7 +297,7 @@ function InviteShare({ url, hint }: { url: string; hint: string }) {
       try {
         await navigator.share({
           title: 'You can borrow this',
-          text: `${hint || 'Hey'} — here's the LendIt invite for the item I'm lending you.`,
+          text: `${hint || 'Hey'} — here's the Partaz invite for the item I'm lending you.`,
           url
         });
       } catch {}

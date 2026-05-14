@@ -11,7 +11,7 @@ export function LegalPage({
     <main className="min-h-screen bg-cream-100">
       <header className="px-4 pt-[env(safe-area-inset-top)]">
         <div className="max-w-3xl mx-auto py-4 flex items-center justify-between">
-          <Link href="/" className="font-display text-xl tracking-tight text-accent-700">LendIt</Link>
+          <Link href="/" className="font-display text-xl tracking-tight text-accent-700">Partaz</Link>
           <nav className="flex items-center gap-4 text-sm">
             <Link href="/about" className="text-gray-600 hover:text-accent-700">About</Link>
             <Link href="/terms" className="text-gray-600 hover:text-accent-700">Terms</Link>
