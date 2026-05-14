@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { Mono, Italic } from '@/components/typography';
 import { claimInvite } from '@/app/(app)/lend/actions';
 
 export function ClaimForm({
@@ -25,19 +26,23 @@ export function ClaimForm({
     }
 
     return (
-      <div className="card p-5 space-y-3">
-        <p className="text-sm text-gray-700">
+      <div>
+        <p className="font-display font-medium text-[16px] leading-[1.4] text-ink-soft mb-6">
           Tap to accept and add this loan to your Partaz account.
         </p>
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button onClick={accept} disabled={busy} className="btn-primary w-full">
-          {busy ? 'Accepting…' : 'Accept this loan'}
+        {error && <p className="font-italic italic text-sm text-cat-tools mb-3">{error}</p>}
+        <button
+          onClick={accept}
+          disabled={busy}
+          className="btn-primary w-full flex justify-between items-center"
+        >
+          <span>{busy ? 'Accepting…' : <>Accept this <Italic>loan</Italic></>}</span>
+          <span aria-hidden>→</span>
         </button>
       </div>
     );
   }
 
-  // Not signed in: tiny signup form
   return <NewUserSignup token={token} recipientHint={recipientHint} lenderName={lenderName} />;
 }
 
@@ -54,7 +59,6 @@ function NewUserSignup({ token, recipientHint, lenderName }: { token: string; re
     setBusy(true); setError(null);
     const sb = createClient();
 
-    // Sign up
     const { data, error: signErr } = await sb.auth.signUp({
       email,
       password,
@@ -71,7 +75,6 @@ function NewUserSignup({ token, recipientHint, lenderName }: { token: string; re
       return;
     }
 
-    // Auto-claim the invite
     const result = await claimInvite(token);
     setBusy(false);
     if ('error' in result) { setError(result.error); return; }
@@ -80,34 +83,67 @@ function NewUserSignup({ token, recipientHint, lenderName }: { token: string; re
   }
 
   return (
-    <form onSubmit={submit} className="card p-5 space-y-3">
-      <h2 className="font-display text-2xl">Quick — create your account</h2>
-      <p className="text-sm text-gray-600">
-        We just need a few details. As soon as you&apos;re in, the loan from {lenderName} is in your app.
-      </p>
-      <div>
+    <form onSubmit={submit}>
+      <div className="border-y-[1.5px] border-ink py-6 mb-6">
+        <h2 className="font-display font-bold text-[26px] leading-tight tracking-[-0.02em] text-ink">
+          Make a <Italic>quick</Italic> account.
+        </h2>
+        <p className="font-display font-medium text-[15px] leading-[1.4] text-ink-soft mt-3">
+          As soon as you&apos;re in, the loan from {lenderName} lands in your app.
+        </p>
+      </div>
+
+      <div className="mb-6">
         <label className="label">First name</label>
-        <input className="input" required maxLength={40} value={firstName} onChange={e => setFirstName(e.target.value)} />
+        <input
+          className="input"
+          required
+          maxLength={40}
+          value={firstName}
+          onChange={e => setFirstName(e.target.value)}
+        />
       </div>
-      <div>
+      <div className="mb-6">
         <label className="label">Email</label>
-        <input className="input" type="email" required value={email} onChange={e => setEmail(e.target.value)} />
+        <input
+          className="input"
+          type="email"
+          required
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+        />
       </div>
-      <div>
+      <div className="mb-6">
         <label className="label">Password</label>
-        <input className="input" type="password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} />
-        <p className="text-[11px] text-gray-500 mt-1">8+ characters.</p>
+        <input
+          className="input"
+          type="password"
+          required
+          minLength={8}
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+        />
+        <Mono className="text-ink-soft mt-2 block">8+ characters</Mono>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <button className="btn-primary w-full" disabled={busy}>
-        {busy ? 'Setting up…' : 'Sign up & accept'}
+
+      {error && <p className="font-italic italic text-sm text-cat-tools mt-3">{error}</p>}
+
+      <button
+        className="btn-primary w-full mt-6 flex justify-between items-center"
+        disabled={busy}
+      >
+        <span>{busy ? 'Setting up…' : <>Sign up & <Italic>accept</Italic></>}</span>
+        <span aria-hidden>→</span>
       </button>
-      <p className="text-center text-xs text-gray-500">
-        Already have an account?{' '}
-        <Link href={`/login?next=/invite/${token}`} className="text-accent-600 font-medium">
-          Sign in instead
-        </Link>
-      </p>
+
+      <div className="mt-6 text-center">
+        <Mono className="text-ink-soft">
+          Already on Partaz?{' '}
+          <Link href={`/login?next=/invite/${token}`} className="text-ink underline">
+            Sign in instead
+          </Link>
+        </Mono>
+      </div>
     </form>
   );
 }

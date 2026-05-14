@@ -4,7 +4,7 @@ export const metadata = { title: 'Terms of Service · Partaz' };
 
 export default function TermsPage() {
   return (
-    <LegalPage title="Terms of Service" lastUpdated="May 2026">
+    <LegalPage title="Terms of {Service}" lastUpdated="May 2026">
       <p>
         These Terms of Service (&ldquo;Terms&rdquo;) govern your use of Partaz
         (the &ldquo;Service&rdquo;), a peer-to-peer platform that lets people
@@ -147,7 +147,7 @@ export default function TermsPage() {
         For questions about these Terms, contact us at [legal@example.com].
       </p>
 
-      <p className="mt-8 text-sm text-gray-500 italic">
+      <p className="mt-10 text-sm text-ink-soft italic font-italic leading-relaxed">
         This is a placeholder Terms of Service drafted for internal review. It
         has not been reviewed by qualified legal counsel and should not be
         relied upon as a final binding agreement until counsel has reviewed
@@ -158,5 +158,5 @@ export default function TermsPage() {
 }
 
 function H({ children }: { children: React.ReactNode }) {
-  return <h2 className="font-display text-2xl mt-8 mb-2 text-accent-700">{children}</h2>;
+  return <h2>{children}</h2>;
 }

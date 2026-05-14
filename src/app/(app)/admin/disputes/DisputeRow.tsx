@@ -23,7 +23,7 @@ export function DisputeRow({ disputeId }: { disputeId: string }) {
   }
 
   return (
-    <div className="border-t border-cream-200 pt-3 space-y-2">
+    <div className="space-y-3">
       <textarea
         className="input min-h-[60px]"
         placeholder="Resolution note (will be visible to both parties)"
@@ -48,7 +48,7 @@ export function DisputeRow({ disputeId }: { disputeId: string }) {
           Item lost — close as lost
         </button>
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="font-italic italic text-sm text-cat-tools">{error}</p>}
     </div>
   );
 }

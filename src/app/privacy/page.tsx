@@ -4,7 +4,7 @@ export const metadata = { title: 'Privacy Policy · Partaz' };
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy Policy" lastUpdated="May 2026">
+    <LegalPage title="Privacy {Policy}" lastUpdated="May 2026">
       <p>
         This Privacy Policy explains what personal information Partaz collects,
         how we use it, who we share it with, and what rights you have over it.
@@ -141,7 +141,7 @@ export default function PrivacyPage() {
         Questions about this Policy: [privacy@example.com].
       </p>
 
-      <p className="mt-8 text-sm text-gray-500 italic">
+      <p className="mt-10 text-sm text-ink-soft italic font-italic leading-relaxed">
         This is a placeholder Privacy Policy drafted for internal review. It
         has not been reviewed by qualified legal counsel and may not satisfy
         the specific requirements of your jurisdiction (in particular GDPR,
@@ -153,5 +153,5 @@ export default function PrivacyPage() {
 }
 
 function H({ children }: { children: React.ReactNode }) {
-  return <h2 className="font-display text-2xl mt-8 mb-2 text-accent-700">{children}</h2>;
+  return <h2>{children}</h2>;
 }

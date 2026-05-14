@@ -13,7 +13,7 @@ export function SignOutLink() {
         router.replace('/login');
         router.refresh();
       }}
-      className="text-sm text-gray-500 underline hover:text-accent-700"
+      className="font-mono text-[10px] uppercase tracking-mono text-ink-soft hover:text-ink transition"
     >
       Sign out
     </button>

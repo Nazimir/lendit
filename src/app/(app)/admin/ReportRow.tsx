@@ -27,14 +27,14 @@ export function ReportRow({
   }
 
   return (
-    <div className="border-t border-cream-200 pt-3 space-y-2">
+    <div className="space-y-3">
       <input
-        className="input text-sm"
+        className="input"
         placeholder="Resolution note (optional)"
         value={note}
         onChange={e => setNote(e.target.value)}
       />
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="font-italic italic text-sm text-cat-tools">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -113,12 +113,12 @@ export function ReopenButton({
 
   return (
     <div className="flex items-center gap-2">
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="font-italic italic text-xs text-cat-tools">{error}</p>}
       <button
         type="button"
         disabled={busy}
         onClick={go}
-        className="font-mono text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-cream-200 text-gray-700 hover:bg-accent-200"
+        className="font-mono text-[10px] uppercase tracking-mono px-3 py-1.5 rounded-full border border-ink/20 text-ink-soft hover:text-ink hover:border-ink/40 transition"
       >
         {busy ? 'Reopening…' : itemToUnhideId ? 'Reopen + un-hide item' : 'Reopen'}
       </button>

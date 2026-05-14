@@ -75,3 +75,16 @@ textarea.input {
 .card {
   @apply bg-paper border border-ink/15 rounded-md;
 }
+
+/* ──────────────────────────────────────────────────────────────
+   Legal prose — long-form editorial body
+   ────────────────────────────────────────────────────────────── */
+.prose-legal h2 {
+  @apply font-display font-bold text-[26px] leading-[1.1] tracking-[-0.02em] text-ink mt-10 mb-3;
+}
+.prose-legal h2:first-child { @apply mt-0; }
+.prose-legal p { @apply text-ink leading-[1.7]; }
+.prose-legal strong { @apply text-ink font-semibold; }
+.prose-legal ul { @apply list-disc pl-6 space-y-1.5 marker:text-ink-soft; }
+.prose-legal a { @apply text-ink underline underline-offset-2 hover:text-ink-soft; }
+.prose-legal em { @apply not-italic; }
