@@ -6,6 +6,7 @@ import { Mono, Italic } from '@/components/typography';
 import { MonoBadge } from '@/components/MonoBadge';
 import { dateLabel } from '@/lib/utils';
 import { paletteForCategory } from '@/lib/categoryStyle';
+import { grainStyle } from '@/lib/grain';
 import { QUIRK_QUESTIONS } from '@/lib/types';
 import type { Item, Profile, Quirks } from '@/lib/types';
 
@@ -52,7 +53,7 @@ export function ItemAd({
           ─────────────────────────────────────────────────────── */}
       <header
         className="px-5 pt-12 pb-7 -mx-4 sm:mx-0"
-        style={{ background: palette.bg, color: palette.ink }}
+        style={{ background: palette.bg, color: palette.ink, ...grainStyle }}
       >
         {/* Top row: wordmark | category label / actions */}
         <div className="flex justify-between items-center">
@@ -160,8 +161,8 @@ export function ItemAd({
             {photos.map((url, i) => (
               <div
                 key={i}
-                className="shrink-0 w-[220px] overflow-hidden border border-ink/15"
-                style={{ aspectRatio: '4/5' }}
+                className="shrink-0 w-[220px] overflow-hidden rounded-3xl"
+                style={{ aspectRatio: '4/5', background: palette.bg, ...grainStyle }}
               >
                 <Lightbox src={url} className="w-full h-full object-cover" />
               </div>

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { paletteForCategory } from '@/lib/categoryStyle';
+import { grainStyle } from '@/lib/grain';
 import { Mono, Italic } from '@/components/typography';
 import { MonoBadge } from '@/components/MonoBadge';
 import type { ItemWithOwner, Quirks } from '@/lib/types';
@@ -66,7 +67,7 @@ function HeroVariant({ item }: { item: ItemWithOwner }) {
     <Link
       href={`/items/${item.id}`}
       className="relative block w-full overflow-hidden"
-      style={{ background: palette.bg, color: palette.ink, aspectRatio: '4/5' }}
+      style={{ background: palette.bg, color: palette.ink, aspectRatio: '4/5', ...grainStyle }}
     >
       {/* Top metadata strip */}
       <div className="absolute top-4 left-5 right-5 flex justify-between" style={{ color: palette.ink }}>
@@ -76,13 +77,12 @@ function HeroVariant({ item }: { item: ItemWithOwner }) {
 
       {/* Photo or placeholder, inset and framed */}
       <div
-        className="absolute rounded-xl overflow-hidden border-2"
+        className="absolute rounded-3xl overflow-hidden"
         style={{
           top: '24%', bottom: '34%', left: '16%', right: '16%',
-          borderColor: palette.ink,
-          borderStyle: item.photos?.[0] ? 'solid' : 'dashed',
+          border: item.photos?.[0] ? 'none' : `1.5px dashed ${palette.ink}`,
           opacity: item.photos?.[0] ? 1 : 0.7,
-          background: 'rgba(255,255,255,0.06)'
+          background: item.photos?.[0] ? 'transparent' : 'rgba(255,255,255,0.06)'
         }}
       >
         <Photo src={item.photos?.[0]} alt={item.title} fallback={item.title.toLowerCase()} />
@@ -135,7 +135,10 @@ function SecondaryVariant({ item }: { item: ItemWithOwner }) {
       className="block px-4"
     >
       <div className="grid grid-cols-2 gap-3.5 items-stretch">
-        <div className="relative overflow-hidden" style={{ aspectRatio: '3/4', background: palette.bg, color: palette.ink }}>
+        <div
+          className="relative overflow-hidden rounded-3xl"
+          style={{ aspectRatio: '3/4', background: palette.bg, color: palette.ink, ...grainStyle }}
+        >
           <Photo src={item.photos?.[0]} alt={item.title} fallback={item.title.toLowerCase()} />
           <div className="absolute top-2 left-2.5">
             <Mono style={{ color: palette.ink } as React.CSSProperties}>{item.category}</Mono>
@@ -176,7 +179,10 @@ function TileVariant({ item }: { item: ItemWithOwner }) {
   const quirk = firstQuirk(item.quirks);
   return (
     <Link href={`/items/${item.id}`} className="block">
-      <div className="relative overflow-hidden" style={{ aspectRatio: '1', background: palette.bg, color: palette.ink }}>
+      <div
+        className="relative overflow-hidden rounded-3xl"
+        style={{ aspectRatio: '1', background: palette.bg, color: palette.ink, ...grainStyle }}
+      >
         <Photo src={item.photos?.[0]} alt={item.title} fallback={item.title.toLowerCase()} />
         <div className="absolute top-1.5 left-2">
           <Mono style={{ color: palette.ink, fontSize: 8 } as React.CSSProperties}>
