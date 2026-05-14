@@ -11,7 +11,8 @@ import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { REQUIRE_PHONE_VERIFICATION } from '@/lib/featureFlags';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { grainStyle } from '@/lib/grain';
-import { territoryForUser } from '@/lib/personalTerritory';
+import { territoryForProfile } from '@/lib/personalTerritory';
+import { ShuffleColourButton } from './ShuffleColourButton';
 import Link from 'next/link';
 import type { Profile, Review } from '@/lib/types';
 
@@ -112,9 +113,9 @@ function ProfileMasthead({
   signOut?: React.ReactNode;
   actionSlot?: React.ReactNode;
 }) {
-  // Personal territory colour — derived from user id so every user gets a
-  // consistent editorial colour even without a photo.
-  const userTerritory = territoryForUser(profile.id);
+  // Personal territory — honours the user's override if they've shuffled,
+  // falls back to the hash-derived default otherwise.
+  const userTerritory = territoryForProfile(profile);
   const palette = paletteForCategory(userTerritory);
   const sinceMonth = profile.created_at
     ? new Date(profile.created_at).toLocaleDateString(undefined, { month: 'short', year: '2-digit' }).toUpperCase().replace(/\s+/g, ' ')
@@ -128,7 +129,10 @@ function ProfileMasthead({
     >
       <div className="flex justify-between items-center">
         <Wordmark size={20} />
-        <Mono style={{ color: palette.ink, opacity: 0.85 }}>SINCE {sinceMonth}</Mono>
+        <div className="flex items-center gap-3">
+          {own && <ShuffleColourButton color={palette.ink} />}
+          <Mono style={{ color: palette.ink, opacity: 0.85 }}>SINCE {sinceMonth}</Mono>
+        </div>
       </div>
       <div className="mt-5 flex justify-between items-center">
         <Mono style={{ color: palette.ink, opacity: 0.85 }}>

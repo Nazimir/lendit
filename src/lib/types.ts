@@ -62,6 +62,7 @@ export interface Profile {
   banned_at: string | null;
   banned_reason: string | null;
   away_until: string | null;
+  territory_override: string | null;
   created_at: string;
   updated_at: string;
 }

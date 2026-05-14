@@ -10,7 +10,7 @@ import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { AwayBadge } from '@/components/AwayBadge';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { grainStyle } from '@/lib/grain';
-import { territoryForUser } from '@/lib/personalTerritory';
+import { territoryForProfile } from '@/lib/personalTerritory';
 import type { Profile, Review, Item, ItemWithOwner } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -135,7 +135,7 @@ function PublicMasthead({
   borrowed: number;
   actions?: React.ReactNode;
 }) {
-  const userTerritory = territoryForUser(profile.id);
+  const userTerritory = territoryForProfile(profile);
   const palette = paletteForCategory(userTerritory);
   const sinceMonth = profile.created_at
     ? new Date(profile.created_at).toLocaleDateString(undefined, { month: 'short', year: '2-digit' }).toUpperCase().replace(/\s+/g, ' ')
