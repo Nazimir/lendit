@@ -38,14 +38,14 @@ const PALETTES: Record<string, CategoryPalette> = {
   'Kitchen':           t('#EBC65A', INK),    // territory: kitchen   (mustard yellow)
   'Outdoor & Camping': t('#B6C6CC', INK),    // territory: outdoor   (cool blue-gray)
   'Sports':            t('#8C9555', PAPER),  // territory: sports    (olive)
-  'Books & Media':     t('#5C3A1E', PAPER),  // territory: books     (chestnut brown)
-  'Electronics':       t('#DCD3BE', INK),    // territory: tech      (taupe)
+  'Books & Media':     t('#5A2A1F', PAPER),  // territory: books     (deep chestnut)
+  'Electronics':       t('#C76A2E', PAPER),  // territory: tech      (burnt orange)
   'Garden':            t('#4F6049', PAPER),  // territory: garden    (forest green)
   'Party & Events':    t('#E9967A', INK),    // territory: music     (warm coral)
   'Baby & Kids':       t('#BFB1D0', INK),    // territory: baby      (lilac)
   'Music':             t('#E9967A', INK),    // territory: music     (warm coral)
   'Travel':            t('#B6C6CC', INK),    // territory: outdoor   (cool blue-gray)
-  'Other':             t('#DCD3BE', INK)     // territory: tech      (neutral taupe)
+  'Other':             t('#C76A2E', PAPER)   // territory: tech      (burnt orange)
 };
 
 const FALLBACK = PALETTES['Other'];

@@ -22,8 +22,8 @@ const config: Config = {
         'cat-music':    '#E9967A',
         'cat-outdoor':  '#B6C6CC',
         'cat-textiles': '#C58D8A',
-        'cat-books':    '#5C3A1E',
-        'cat-tech':     '#DCD3BE',
+        'cat-books':    '#5A2A1F',
+        'cat-tech':     '#C76A2E',
         'cat-baby':     '#BFB1D0',
         'cat-sports':   '#8C9555',
 

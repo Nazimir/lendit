@@ -22,6 +22,20 @@ const TERRITORIES_IN_ORDER: string[] = [
 ];
 
 export function territoryForUser(id: string): string {
+  return territoryById(id);
+}
+
+/**
+ * Same underlying hash. Use this when assigning a stable territory to an
+ * item (for visual variety on the owner's own shelf, where the category
+ * is already visible elsewhere and consecutive same-category items would
+ * otherwise look identical).
+ */
+export function territoryForItem(id: string): string {
+  return territoryById(id);
+}
+
+function territoryById(id: string): string {
   const hex = id.replace(/-/g, '').slice(0, 4);
   if (!hex) return TERRITORIES_IN_ORDER[0];
   return TERRITORIES_IN_ORDER[parseInt(hex, 16) % TERRITORIES_IN_ORDER.length];

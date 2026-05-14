@@ -4,6 +4,7 @@ import { Mono, Italic } from '@/components/typography';
 import { MonoBadge } from '@/components/MonoBadge';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { grainStyle } from '@/lib/grain';
+import { territoryForItem } from '@/lib/personalTerritory';
 import type { Item, BorrowRequest } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -108,12 +109,14 @@ export default async function MyListingsPage() {
 
 function ShelfRow({ item, pending }: { item: Item; pending: number }) {
   const palette = paletteForCategory(item.category);
+  // Strip colour comes from the item's own hash so consecutive same-category
+  // items on YOUR own shelf still look distinct. The category palette stays
+  // visible on the photo background + the mono label.
+  const stripPalette = paletteForCategory(territoryForItem(item.id));
   const shortNo = numberFromId(item.id);
   return (
     <li className="grid grid-cols-[12px_52px_64px_1fr_auto] gap-3 items-center py-3.5 border-b border-ink/15">
-      {/* Territory color strip — keeps category palette visible even when
-          a real photo covers the photo slot. */}
-      <div className="w-3 h-14 self-center" style={{ background: palette.bg }} aria-hidden />
+      <div className="w-3 h-14 self-center" style={{ background: stripPalette.bg }} aria-hidden />
       <div className="font-display font-extrabold text-[24px] leading-[0.85] tracking-[-0.04em] text-ink-soft text-right pr-0.5">
         {shortNo}
       </div>
