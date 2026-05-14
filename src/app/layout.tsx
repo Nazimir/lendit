@@ -1,15 +1,26 @@
 import type { Metadata, Viewport } from 'next';
-import { Fraunces, Caveat, JetBrains_Mono } from 'next/font/google';
+import { Bricolage_Grotesque, Instrument_Serif, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 
-const fraunces = Fraunces({
+const display = Bricolage_Grotesque({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
-  axes: ['SOFT', 'WONK']
+  weight: ['400', '500', '600', '700', '800']
 });
-const caveat = Caveat({ subsets: ['latin'], variable: '--font-script', display: 'swap' });
-const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap' });
+const italic = Instrument_Serif({
+  subsets: ['latin'],
+  variable: '--font-italic',
+  display: 'swap',
+  weight: '400',
+  style: 'italic'
+});
+const mono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+  weight: ['400', '500']
+});
 
 export const metadata: Metadata = {
   title: 'Partaz',
@@ -32,7 +43,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#86A789',
+  themeColor: '#F2ECE0',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -41,8 +52,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${caveat.variable} ${mono.variable}`}>
-      <body className="min-h-screen bg-cream-100 text-accent-900">
+    <html lang="en" className={`${display.variable} ${italic.variable} ${mono.variable}`}>
+      <body className="min-h-screen bg-paper text-ink">
         {children}
       </body>
     </html>

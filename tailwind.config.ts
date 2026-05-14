@@ -5,41 +5,75 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Soft sage green primary — change these hexes to repaint the app.
+        // ─────────────────────────────────────────────────────────────
+        // Partaz visual reset — paper, ink, territory.
+        // ─────────────────────────────────────────────────────────────
+        paper: '#F2ECE0',         // primary cream
+        'paper-soft': '#E8E1D2',  // recessed surfaces
+        ink: '#16130D',           // primary text
+        'ink-soft': '#3D352A',    // secondary text
+        partaz: '#D8421C',        // the red dot in the wordmark
+
+        // 10 category territories. Each is the full canvas of an item card.
+        // Pair with cat-*-ink for legible text on top.
+        'cat-tools':    '#D8421C',
+        'cat-kitchen':  '#EBC65A',
+        'cat-garden':   '#4F6049',
+        'cat-music':    '#E9967A',
+        'cat-outdoor':  '#B6C6CC',
+        'cat-textiles': '#C58D8A',
+        'cat-books':    '#1E2C44',
+        'cat-tech':     '#DCD3BE',
+        'cat-baby':     '#BFB1D0',
+        'cat-sports':   '#8C9555',
+
+        // ─────────────────────────────────────────────────────────────
+        // LEGACY ALIASES — old token names redirected to new palette so
+        // existing components (sage greens, creams) render correctly
+        // until they're rewritten in Phases 2–7. New code should prefer
+        // paper / ink / partaz / cat-* above.
+        // ─────────────────────────────────────────────────────────────
         accent: {
-          50:  '#F1F6F1',
-          100: '#E1ECE2',
-          200: '#C5DAC8',
-          300: '#A3C4A8',
-          400: '#86A789',  // primary
-          500: '#6E9072',
-          600: '#577559',
-          700: '#445B47',
-          800: '#33433A',
-          900: '#1F2A21'
+          50:  '#F2ECE0',
+          100: '#E8E1D2',
+          200: '#DDD3BE',
+          300: '#A89A82',
+          400: '#16130D', // was sage; now ink (used on primary CTAs)
+          500: '#16130D',
+          600: '#16130D',
+          700: '#16130D',
+          800: '#16130D',
+          900: '#16130D'
         },
         cream: {
-          50:  '#FDFCF8',
-          100: '#FAFAF7',  // page background
-          200: '#F2F1EA'
+          50:  '#F2ECE0',
+          100: '#F2ECE0',
+          200: '#E8E1D2'
         },
-        // Soft pink and butter for status pills, ratings
-        rose:   { soft: '#F8B4C8' },
-        butter: { soft: '#F6D77A' }
+        rose:   { soft: '#E9967A' },  // → music territory
+        butter: { soft: '#EBC65A' }   // → kitchen territory
       },
       borderRadius: {
-        xl: '1rem',
-        '2xl': '1.25rem',
-        '3xl': '1.5rem'
+        // Editorial: sharp corners by default. Photo wrappers stay slightly round.
+        xl:   '0.5rem',
+        '2xl':'0.75rem',
+        '3xl':'1rem'
       },
       boxShadow: {
-        soft: '0 4px 14px -6px rgba(31,42,33,0.10), 0 2px 4px -2px rgba(31,42,33,0.05)'
+        // Editorial design avoids drop-shadows. Keep the token name so old
+        // `shadow-soft` references don't break; effectively a no-op now.
+        soft: 'none'
       },
       fontFamily: {
-        sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
-        display: ['var(--font-display)', 'Fraunces', 'Georgia', 'serif'],
-        script: ['var(--font-script)', 'Caveat', 'cursive'],
-        mono: ['var(--font-mono)', 'ui-monospace', 'monospace']
+        sans:    ['var(--font-display)', 'Bricolage Grotesque', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['var(--font-display)', 'Bricolage Grotesque', 'system-ui', 'sans-serif'],
+        italic:  ['var(--font-italic)',  'Instrument Serif', 'Georgia', 'serif'],
+        script:  ['var(--font-italic)',  'Instrument Serif', 'Georgia', 'serif'], // legacy alias
+        mono:    ['var(--font-mono)',    'ui-monospace', 'monospace']
+      },
+      letterSpacing: {
+        editorial: '-0.02em',
+        mono: '0.14em'
       }
     }
   },
