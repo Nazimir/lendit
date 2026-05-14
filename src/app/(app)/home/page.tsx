@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { ItemCard } from '@/components/ItemCard';
 import { Wordmark } from '@/components/Wordmark';
 import { Mono, Italic, Rule } from '@/components/typography';
+import { MonoBadge } from '@/components/MonoBadge';
 import { SearchBar } from './SearchBar';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { expandSearchTerms } from '@/lib/synonyms';
@@ -48,6 +49,11 @@ export default async function HomePage({ searchParams }: { searchParams: { q?: s
     return aLocal - bLocal;
   });
 
+  // Split into mosaic: first item = hero, second = secondary, rest = tile grid.
+  const hero      = items[0] ?? null;
+  const secondary = items[1] ?? null;
+  const tiles     = items.slice(2);
+
   // My items currently out (loans where I'm lender, status not completed)
   const { data: outLoansRaw } = await supabase
     .from('loans')
@@ -56,7 +62,6 @@ export default async function HomePage({ searchParams }: { searchParams: { q?: s
     .in('status', ['pending_handover', 'active', 'pending_return']);
   const outLoans = (outLoansRaw || []) as Loan[];
 
-  // Fetch their items in one query
   let outItems: Item[] = [];
   if (outLoans.length > 0) {
     const ids = outLoans.map(l => l.item_id);
@@ -70,80 +75,115 @@ export default async function HomePage({ searchParams }: { searchParams: { q?: s
     month: 'short'
   }).toUpperCase().replace(',', ' ·');
 
+  const sectionLabel = q
+    ? `Results for "${q}"`
+    : me?.suburb
+      ? `Available near ${me.suburb}`
+      : 'Available now';
+
   return (
-    <main className="px-4 max-w-2xl mx-auto pt-[env(safe-area-inset-top)]">
-      {/* Brand strip — wordmark on the left, date on the right */}
-      <div className="pt-5 pb-3 flex items-center justify-between">
-        <Wordmark size={26} />
-        <Mono className="text-ink-soft">{today}</Mono>
+    <main className="max-w-2xl mx-auto pt-[env(safe-area-inset-top)]">
+      {/* Header chrome — padded */}
+      <div className="px-4">
+        <div className="pt-5 pb-3 flex items-center justify-between">
+          <Wordmark size={26} />
+          <Mono className="text-ink-soft">{today}</Mono>
+        </div>
+        <Rule />
+
+        <div className="pt-5 pb-4">
+          <h1 className="font-display font-extrabold text-[44px] leading-[0.9] tracking-[-0.035em] text-ink">
+            Hi <Italic>{me?.first_name?.split(' ')[0] || 'there'}</Italic>
+          </h1>
+          <Mono className="text-ink-soft mt-2.5 block">
+            What do you need to borrow today?
+          </Mono>
+        </div>
+
+        <SearchBar defaultValue={q} />
+
+        {outLoans.length > 0 && (
+          <section className="mt-7">
+            <Mono className="block text-ink mb-3">Your items currently out</Mono>
+            <ul className="space-y-px">
+              {outLoans.map(l => {
+                const item = outItems.find(i => i.id === l.item_id);
+                if (!item) return null;
+                const palette = paletteForCategory(item.category);
+                const due = l.due_at
+                  ? new Date(l.due_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                  : null;
+                return (
+                  <li key={l.id}>
+                    <Link
+                      href={`/loans/${l.id}`}
+                      className="flex items-center gap-3 p-3 border-t border-ink/15 hover:bg-paper-soft transition"
+                    >
+                      <div
+                        className="w-14 h-14 shrink-0 overflow-hidden relative"
+                        style={{ background: palette.bg }}
+                      >
+                        {item.photos?.[0] && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={item.photos[0]} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-display font-bold text-[17px] leading-tight line-clamp-1 text-ink">
+                          {item.title}
+                        </div>
+                        <Mono className="text-ink-soft block mt-1">
+                          {l.status === 'pending_handover' && 'Awaiting handover'}
+                          {l.status === 'active' && (due ? `Due ${due}` : 'On loan')}
+                          {l.status === 'pending_return' && 'Return in progress'}
+                        </Mono>
+                      </div>
+                      <MonoBadge variant={l.status === 'pending_return' ? 'kitchen' : 'ink'}>
+                        {l.status.replace('_', ' ')}
+                      </MonoBadge>
+                    </Link>
+                  </li>
+                );
+              })}
+              <li className="border-t border-ink/15" aria-hidden />
+            </ul>
+          </section>
+        )}
       </div>
-      <Rule />
 
-      <div className="pt-5 pb-4">
-        <h1 className="font-display font-extrabold text-[44px] leading-[0.9] tracking-[-0.035em] text-ink">
-          Hi <Italic>{me?.first_name?.split(' ')[0] || 'there'}</Italic>
-        </h1>
-        <Mono className="text-ink-soft mt-2.5 block">
-          What do you need to borrow today?
-        </Mono>
-      </div>
-
-      <SearchBar defaultValue={q} />
-
-      {outLoans.length > 0 && (
-        <section className="mt-7">
-          <Mono className="block text-ink mb-3">Your items currently out</Mono>
-          <div className="space-y-2">
-            {outLoans.map(l => {
-              const item = outItems.find(i => i.id === l.item_id);
-              if (!item) return null;
-              const palette = paletteForCategory(item.category);
-              return (
-                <Link
-                  key={l.id}
-                  href={`/loans/${l.id}`}
-                  className="rounded-3xl p-3 flex items-center gap-3 border-2 shadow-soft hover:-translate-y-0.5 transition block"
-                  style={{ background: palette.bg, borderColor: palette.accent, color: palette.ink }}
-                >
-                  <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 border" style={{ borderColor: palette.accent }}>
-                    {item.photos?.[0] && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.photos[0]} alt="" className="w-full h-full object-cover" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-display text-lg leading-tight line-clamp-1">{item.title}</div>
-                    <div className="font-mono text-[10px] uppercase tracking-wider mt-0.5 opacity-70">
-                      {l.status === 'pending_handover' && 'Awaiting handover'}
-                      {l.status === 'active' && (l.due_at ? `Due ${new Date(l.due_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : 'On loan')}
-                      {l.status === 'pending_return' && 'Return in progress'}
-                    </div>
-                  </div>
-                  <span
-                    className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-full shrink-0"
-                    style={{ background: palette.accent, color: '#fff' }}
-                  >
-                    {l.status.replace('_', ' ')}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
+      {/* Feed — edge to edge */}
       <section className="mt-7">
-        <Mono className="block text-ink mb-3">
-          {q ? <>Results for &ldquo;{q}&rdquo;</> : me?.suburb ? <>Available near {me.suburb}</> : <>Available now</>}
-        </Mono>
+        <div className="px-4 mb-3">
+          <Mono className="block text-ink">{sectionLabel}</Mono>
+        </div>
+
         {items.length === 0 ? (
-          <p className="text-gray-500 text-sm py-6 text-center">
+          <p className="px-4 text-ink-soft text-sm py-6 text-center font-italic italic">
             Nothing here yet. Try a different search, or list your own item to kick things off.
           </p>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {items.map(it => <ItemCard key={it.id} item={it} />)}
-          </div>
+          <>
+            {hero && <ItemCard item={hero} variant="hero" />}
+
+            {(secondary || tiles.length > 0) && (
+              <div className="px-4 py-4 mt-0 border-t border-b border-ink flex justify-between items-baseline">
+                <h2 className="font-display font-bold text-[22px] tracking-[-0.02em] text-ink">
+                  Also <Italic>around</Italic>
+                </h2>
+                <Mono className="text-ink-soft">
+                  {tiles.length + (secondary ? 1 : 0)} more
+                </Mono>
+              </div>
+            )}
+
+            {secondary && <div className="pt-4"><ItemCard item={secondary} variant="secondary" /></div>}
+
+            {tiles.length > 0 && (
+              <div className="grid grid-cols-3 gap-2.5 px-4 mt-4">
+                {tiles.map(it => <ItemCard key={it.id} item={it} variant="tile" />)}
+              </div>
+            )}
+          </>
         )}
       </section>
     </main>

@@ -12,13 +12,15 @@ import type { ReactNode } from 'react';
  */
 export function Mono({
   children,
-  className = ''
+  className = '',
+  style
 }: {
   children: ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
-    <span className={`font-mono text-[10px] uppercase tracking-mono ${className}`}>
+    <span className={`font-mono text-[10px] uppercase tracking-mono ${className}`} style={style}>
       {children}
     </span>
   );
@@ -37,13 +39,15 @@ export function Mono({
  */
 export function Italic({
   children,
-  className = ''
+  className = '',
+  style
 }: {
   children: ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
-    <span className={`font-italic italic font-normal ${className}`}>
+    <span className={`font-italic italic font-normal ${className}`} style={style}>
       {children}
     </span>
   );
