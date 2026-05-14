@@ -75,11 +75,14 @@ function HeroVariant({ item }: { item: ItemWithOwner }) {
         {!item.is_available && <MonoBadge variant="ink">On loan</MonoBadge>}
       </div>
 
-      {/* Photo or placeholder, inset and framed */}
+      {/* Photo or placeholder, inset and framed.
+          Inset values keep the photo around 56% × 36% of the card — tight
+          enough that the territory canvas reads as the frame and the title
+          block below has room to breathe. */}
       <div
         className="absolute rounded-3xl overflow-hidden"
         style={{
-          top: '24%', bottom: '34%', left: '16%', right: '16%',
+          top: '26%', bottom: '38%', left: '22%', right: '22%',
           border: item.photos?.[0] ? 'none' : `1.5px dashed ${palette.ink}`,
           opacity: item.photos?.[0] ? 1 : 0.7,
           background: item.photos?.[0] ? 'transparent' : 'rgba(255,255,255,0.06)'
