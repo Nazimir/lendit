@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { ItemCard } from '@/components/ItemCard';
 import { Wordmark } from '@/components/Wordmark';
+import { Mono, Italic, Rule } from '@/components/typography';
 import { SearchBar } from './SearchBar';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { expandSearchTerms } from '@/lib/synonyms';
@@ -74,25 +75,24 @@ export default async function HomePage({ searchParams }: { searchParams: { q?: s
       {/* Brand strip — wordmark on the left, date on the right */}
       <div className="pt-5 pb-3 flex items-center justify-between">
         <Wordmark size={26} />
-        <span className="font-mono text-[10px] uppercase tracking-mono text-ink-soft">
-          {today}
-        </span>
+        <Mono className="text-ink-soft">{today}</Mono>
       </div>
+      <Rule />
 
-      <div className="pt-2 pb-3 border-t border-ink/15">
-        <h1 className="font-display font-extrabold text-[44px] leading-[0.9] tracking-[-0.035em] text-ink mt-5">
-          Hi <span className="font-italic italic font-normal">{me?.first_name?.split(' ')[0] || 'there'}</span>
+      <div className="pt-5 pb-4">
+        <h1 className="font-display font-extrabold text-[44px] leading-[0.9] tracking-[-0.035em] text-ink">
+          Hi <Italic>{me?.first_name?.split(' ')[0] || 'there'}</Italic>
         </h1>
-        <p className="font-mono text-[10px] uppercase tracking-mono text-ink-soft mt-2.5">
+        <Mono className="text-ink-soft mt-2.5 block">
           What do you need to borrow today?
-        </p>
+        </Mono>
       </div>
 
       <SearchBar defaultValue={q} />
 
       {outLoans.length > 0 && (
         <section className="mt-7">
-          <h2 className="font-mono text-[10px] font-semibold text-gray-700 mb-3 uppercase tracking-wider">Your items currently out</h2>
+          <Mono className="block text-ink mb-3">Your items currently out</Mono>
           <div className="space-y-2">
             {outLoans.map(l => {
               const item = outItems.find(i => i.id === l.item_id);
@@ -133,9 +133,9 @@ export default async function HomePage({ searchParams }: { searchParams: { q?: s
       )}
 
       <section className="mt-7">
-        <h2 className="font-mono text-[10px] font-semibold text-gray-700 mb-3 uppercase tracking-wider">
-          {q ? `Results for "${q}"` : me?.suburb ? `Available near ${me.suburb}` : 'Available now'}
-        </h2>
+        <Mono className="block text-ink mb-3">
+          {q ? <>Results for &ldquo;{q}&rdquo;</> : me?.suburb ? <>Available near {me.suburb}</> : <>Available now</>}
+        </Mono>
         {items.length === 0 ? (
           <p className="text-gray-500 text-sm py-6 text-center">
             Nothing here yet. Try a different search, or list your own item to kick things off.
