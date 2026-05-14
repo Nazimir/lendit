@@ -67,7 +67,7 @@ function HeroVariant({ item }: { item: ItemWithOwner }) {
     <Link
       href={`/items/${item.id}`}
       className="relative block w-full overflow-hidden"
-      style={{ background: palette.bg, color: palette.ink, aspectRatio: '4/5', ...grainStyle }}
+      style={{ background: palette.bg, color: palette.ink, aspectRatio: '1/1', ...grainStyle }}
     >
       {/* Top metadata strip */}
       <div className="absolute top-4 left-5 right-5 flex justify-between" style={{ color: palette.ink }}>
@@ -76,14 +76,13 @@ function HeroVariant({ item }: { item: ItemWithOwner }) {
       </div>
 
       {/* Photo or placeholder, inset and framed.
-          Inset values give the photo ~64% × 58% of the card — large enough
+          Inset values give the photo ~56% × 50% of the card — large enough
           that the territory reads as a margin rather than a vast frame,
-          and the bottom of the photo sits flush against the title block
-          for editorial overlap. */}
+          while leaving room for the title block below to overlap slightly. */}
       <div
         className="absolute rounded-3xl overflow-hidden"
         style={{
-          top: '22%', bottom: '20%', left: '18%', right: '18%',
+          top: '22%', bottom: '28%', left: '22%', right: '22%',
           border: item.photos?.[0] ? 'none' : `1.5px dashed ${palette.ink}`,
           opacity: item.photos?.[0] ? 1 : 0.7,
           background: item.photos?.[0] ? 'transparent' : 'rgba(255,255,255,0.06)'
