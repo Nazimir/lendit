@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { ItemCard } from '@/components/ItemCard';
+import { Wordmark } from '@/components/Wordmark';
 import { SearchBar } from './SearchBar';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { expandSearchTerms } from '@/lib/synonyms';
@@ -62,13 +63,29 @@ export default async function HomePage({ searchParams }: { searchParams: { q?: s
     outItems = (its || []) as Item[];
   }
 
+  const today = new Date().toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: '2-digit',
+    month: 'short'
+  }).toUpperCase().replace(',', ' ·');
+
   return (
     <main className="px-4 max-w-2xl mx-auto pt-[env(safe-area-inset-top)]">
-      <div className="pt-6 pb-3">
-        <h1 className="font-display text-4xl tracking-tight leading-none">
-          Hi <span className="font-script text-accent-600">{me?.first_name?.split(' ')[0] || 'there'}</span>
+      {/* Brand strip — wordmark on the left, date on the right */}
+      <div className="pt-5 pb-3 flex items-center justify-between">
+        <Wordmark size={26} />
+        <span className="font-mono text-[10px] uppercase tracking-mono text-ink-soft">
+          {today}
+        </span>
+      </div>
+
+      <div className="pt-2 pb-3 border-t border-ink/15">
+        <h1 className="font-display font-extrabold text-[44px] leading-[0.9] tracking-[-0.035em] text-ink mt-5">
+          Hi <span className="font-italic italic font-normal">{me?.first_name?.split(' ')[0] || 'there'}</span>
         </h1>
-        <p className="text-gray-500 text-sm mt-1">What do you need to borrow today?</p>
+        <p className="font-mono text-[10px] uppercase tracking-mono text-ink-soft mt-2.5">
+          What do you need to borrow today?
+        </p>
       </div>
 
       <SearchBar defaultValue={q} />
