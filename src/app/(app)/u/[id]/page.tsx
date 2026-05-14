@@ -1,15 +1,15 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { PageHeader } from '@/components/PageHeader';
+import { Wordmark } from '@/components/Wordmark';
+import { Mono, Italic } from '@/components/typography';
 import { Avatar } from '@/components/Avatar';
-import { Stars } from '@/components/Stars';
 import { ItemCard } from '@/components/ItemCard';
 import { SafetyMenu } from '@/components/SafetyMenu';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { AwayBadge } from '@/components/AwayBadge';
 import { paletteForCategory } from '@/lib/categoryStyle';
-import { dateLabel } from '@/lib/utils';
+import { grainStyle } from '@/lib/grain';
 import type { Profile, Review, Item, ItemWithOwner } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +18,7 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [{ data: prof }, { data: reviewsRaw }, { data: itemsRaw }, { data: blockRow }] = await Promise.all([
+  const [{ data: prof }, { data: reviewsRaw }, { data: itemsRaw }, { data: blockRow }, { count: lentCount }, { count: borrowedCount }] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', params.id).single(),
     supabase.from('reviews').select('*').eq('reviewee_id', params.id)
       .order('created_at', { ascending: false }).limit(20),
@@ -28,7 +28,9 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
     user
       ? supabase.from('blocks').select('id')
           .eq('blocker_id', user.id).eq('blocked_id', params.id).maybeSingle()
-      : Promise.resolve({ data: null })
+      : Promise.resolve({ data: null }),
+    supabase.from('loans').select('id', { count: 'exact', head: true }).eq('lender_id', params.id).eq('status', 'completed'),
+    supabase.from('loans').select('id', { count: 'exact', head: true }).eq('borrower_id', params.id).eq('status', 'completed')
   ]);
 
   if (!prof) notFound();
@@ -36,11 +38,9 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
   const reviews = (reviewsRaw || []) as Review[];
   const items = (itemsRaw || []) as Item[];
   const isBlocked = !!blockRow;
+  const isMe = user?.id === params.id;
 
-  const available = items.filter(i => i.is_available);
-  const onLoan = items.filter(i => !i.is_available);
-
-  // Build ItemWithOwner-shaped objects so we can reuse ItemCard
+  // Wrap items as ItemWithOwner so we can reuse ItemCard
   const wrap = (i: Item): ItemWithOwner => ({
     ...i,
     owner_first_name: profile.first_name,
@@ -49,35 +49,21 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
     owner_reputation: profile.reputation_score
   });
 
-  const isMe = user?.id === params.id;
-
   return (
-    <main>
-      <PageHeader title={profile.first_name} back="/home" />
-      <div className="px-4 max-w-2xl mx-auto pb-8">
-        <div className="card p-5 flex items-center gap-4">
-          <Avatar url={profile.photo_url} name={profile.first_name} size={72} />
-          <div className="min-w-0 flex-1">
-            <div className="text-lg font-semibold flex items-center gap-2">
-              {profile.first_name}
-              {profile.phone_verified && <VerifiedBadge size={16} />}
-            </div>
-            <div className="text-sm text-gray-500">{profile.suburb}</div>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <Stars value={Number(profile.reputation_score)} />
-              <span className="text-xs text-gray-600">
-                {Number(profile.reputation_score).toFixed(1)}
-                {' '}
-                ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
-                {' · '}
-                {profile.karma_points} karma
-              </span>
-              <AwayBadge awayUntil={profile.away_until} />
-            </div>
-          </div>
-          {!isMe && user && (
-            <div className="flex items-center gap-1">
-              <Link href={`/messages/${profile.id}`} className="btn-secondary text-sm py-2 px-3">Message</Link>
+    <main className="max-w-2xl mx-auto pb-8">
+      <PublicMasthead
+        profile={profile}
+        lent={lentCount ?? 0}
+        borrowed={borrowedCount ?? 0}
+        actions={
+          !isMe && user && (
+            <>
+              <Link
+                href={`/messages/${profile.id}`}
+                className="font-display font-bold text-[13px] px-3 py-1.5 bg-ink text-paper"
+              >
+                Message
+              </Link>
               <SafetyMenu
                 targetKind="profile"
                 targetId={profile.id}
@@ -85,76 +71,154 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
                 alreadyBlocked={isBlocked}
                 context="this user"
               />
-            </div>
-          )}
+            </>
+          )
+        }
+      />
+
+      <section className="px-5 mt-8">
+        <div className="flex items-baseline justify-between pb-2 mb-4 border-b-[1.5px] border-ink">
+          <h2 className="font-display font-bold text-[22px] tracking-[-0.02em] text-ink">
+            {isMe ? <>Your <Italic>shelf</Italic></> : <><span className="capitalize">{profile.first_name}&apos;s</span> <Italic>shelf</Italic></>}
+          </h2>
+          <Mono className="text-ink-soft">
+            {items.length === 0 ? 'EMPTY' : `${items.length} ${items.length === 1 ? 'THING' : 'THINGS'}`}
+          </Mono>
         </div>
-
-        {available.length > 0 && (
-          <section className="mt-7">
-            <h2 className="font-mono text-[10px] font-semibold text-gray-700 mb-3 uppercase tracking-wider">
-              Available now ({available.length})
-            </h2>
-            <div className="grid grid-cols-2 gap-3">
-              {available.map(it => <ItemCard key={it.id} item={wrap(it)} />)}
-            </div>
-          </section>
-        )}
-
-        {onLoan.length > 0 && (
-          <section className="mt-7">
-            <h2 className="font-mono text-[10px] font-semibold text-gray-700 mb-3 uppercase tracking-wider">
-              On loan ({onLoan.length})
-            </h2>
-            <ul className="space-y-2">
-              {onLoan.map(it => {
-                const palette = paletteForCategory(it.category);
-                return (
-                  <Link
-                    key={it.id}
-                    href={`/items/${it.id}`}
-                    className="rounded-3xl p-3 flex gap-3 items-center border-2 shadow-soft hover:-translate-y-0.5 transition block"
-                    style={{ background: palette.bg, borderColor: palette.accent, color: palette.ink }}
-                  >
-                    <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 border" style={{ borderColor: palette.accent }}>
-                      {it.photos[0] && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={it.photos[0]} alt="" className="w-full h-full object-cover" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-display text-lg leading-tight line-clamp-1">{it.title}</div>
-                      <div className="font-mono text-[10px] uppercase tracking-wider mt-0.5 opacity-70">
-                        {it.expected_back_at ? `Back ${dateLabel(it.expected_back_at)}` : 'On loan'}
-                      </div>
-                    </div>
-                    <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-rose-soft text-accent-900 shrink-0">
-                      On loan
-                    </span>
-                  </Link>
-                );
-              })}
-            </ul>
-          </section>
-        )}
-
-        {available.length === 0 && onLoan.length === 0 && (
-          <p className="text-gray-500 text-sm mt-7">No listings yet.</p>
-        )}
-
-        <h2 className="font-mono text-[10px] font-semibold text-gray-700 mt-7 mb-3 uppercase tracking-wider">Reviews</h2>
-        {reviews.length === 0 ? (
-          <p className="text-gray-500 text-sm">No reviews yet.</p>
+        {items.length === 0 ? (
+          <p className="font-italic italic text-ink-soft text-sm py-3">No listings yet.</p>
         ) : (
-          <ul className="space-y-3">
-            {reviews.map(r => (
-              <li key={r.id} className="card p-3">
-                <Stars value={r.stars} />
-                {r.comment && <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{r.comment}</p>}
-              </li>
-            ))}
-          </ul>
+          <div className="grid grid-cols-2 gap-3">
+            {items.map(it => <ItemCard key={it.id} item={wrap(it)} />)}
+          </div>
         )}
-      </div>
+      </section>
+
+      <section className="px-5 mt-9">
+        <div className="flex items-baseline justify-between pb-2 mb-4 border-b-[1.5px] border-ink">
+          <h2 className="font-display font-bold text-[22px] tracking-[-0.02em] text-ink">
+            What <Italic>they say</Italic>
+          </h2>
+          <Mono className="text-ink-soft">
+            {reviews.length === 0 ? 'NONE YET' : `${reviews.length} ${reviews.length === 1 ? 'REVIEW' : 'REVIEWS'}`}
+          </Mono>
+        </div>
+        {reviews.length === 0 ? (
+          <p className="font-italic italic text-ink-soft text-sm py-3">No reviews yet.</p>
+        ) : (
+          <div className="flex flex-col">
+            {reviews.map(r => (
+              <div key={r.id} className="py-4 border-b border-dashed border-ink/30">
+                {r.comment && (
+                  <p className="font-italic italic text-[18px] leading-[1.3] text-ink">
+                    &ldquo;{r.comment}&rdquo;
+                  </p>
+                )}
+                <Mono className="text-ink-soft mt-2 block">
+                  · {r.stars} ★ · {new Date(r.created_at).toLocaleDateString(undefined, { month: 'short', year: '2-digit' }).toUpperCase()}
+                </Mono>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </main>
   );
+}
+
+function PublicMasthead({
+  profile, lent, borrowed, actions
+}: {
+  profile: Profile;
+  lent: number;
+  borrowed: number;
+  actions?: React.ReactNode;
+}) {
+  const userTerritory = territoryForUser(profile.id);
+  const palette = paletteForCategory(userTerritory);
+  const sinceMonth = profile.created_at
+    ? new Date(profile.created_at).toLocaleDateString(undefined, { month: 'short', year: '2-digit' }).toUpperCase().replace(/\s+/g, ' ')
+    : '—';
+  const rating = Number(profile.reputation_score ?? 0).toFixed(1);
+
+  return (
+    <header
+      className="px-5 pt-12 pb-7"
+      style={{ background: palette.bg, color: palette.ink, ...grainStyle }}
+    >
+      <div className="flex justify-between items-center">
+        <Wordmark size={20} />
+        <Mono style={{ color: palette.ink, opacity: 0.85 }}>SINCE {sinceMonth}</Mono>
+      </div>
+
+      <Link href="/home" className="mt-5 inline-block hover:opacity-70 transition" style={{ color: palette.ink }}>
+        <Mono style={{ color: palette.ink }}>← Back</Mono>
+      </Link>
+
+      <div className="mt-6 flex items-end gap-4">
+        <div className="shrink-0">
+          <Avatar url={profile.photo_url} name={profile.first_name} size={92} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h1
+            className="font-display font-extrabold leading-[0.9] tracking-[-0.035em]"
+            style={{ color: palette.ink, fontSize: 'clamp(40px, 13vw, 56px)' }}
+          >
+            {profile.first_name}<Italic>.</Italic>
+          </h1>
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            <Mono style={{ color: palette.ink, opacity: 0.85 }}>· {profile.suburb?.toUpperCase()}</Mono>
+            {profile.phone_verified && <VerifiedBadge size={14} />}
+            <AwayBadge awayUntil={profile.away_until} />
+          </div>
+        </div>
+      </div>
+
+      {actions && (
+        <div className="mt-5 flex items-center gap-2">
+          {actions}
+        </div>
+      )}
+
+      <div
+        className="mt-6 grid grid-cols-4"
+        style={{ borderTop: `1px solid ${palette.ink}` }}
+      >
+        <Stat label="Karma" value={profile.karma_points ?? 0} palette={palette} />
+        <Stat label="Rating" value={rating} palette={palette} divider />
+        <Stat label="Lent" value={`${lent}×`} palette={palette} divider />
+        <Stat label="Borrowed" value={`${borrowed}×`} palette={palette} divider />
+      </div>
+    </header>
+  );
+}
+
+function Stat({
+  label, value, palette, divider
+}: {
+  label: string;
+  value: React.ReactNode;
+  palette: { ink: string };
+  divider?: boolean;
+}) {
+  return (
+    <div
+      className="px-2 py-3 text-center"
+      style={{ borderLeft: divider ? `1px solid ${palette.ink}` : undefined }}
+    >
+      <Mono style={{ color: palette.ink, opacity: 0.7 }}>{label}</Mono>
+      <div
+        className="font-display font-extrabold mt-1"
+        style={{ color: palette.ink, fontSize: 18 }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function territoryForUser(id: string): string {
+  const territories = ['Textiles', 'Music', 'Outdoor & Camping', 'Baby & Kids', 'Garden', 'Books & Media', 'Tools', 'Kitchen', 'Electronics', 'Sports'];
+  const hex = id.replace(/-/g, '').slice(0, 4);
+  return territories[parseInt(hex, 16) % territories.length];
 }

@@ -1,9 +1,8 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { PageHeader } from '@/components/PageHeader';
-import { dateLabel } from '@/lib/utils';
+import { Mono, Italic } from '@/components/typography';
 import { paletteForCategory } from '@/lib/categoryStyle';
-import type { Loan, Item } from '@/lib/types';
+import type { Loan, Item, Profile } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,173 +17,247 @@ export default async function LoansPage() {
     .order('created_at', { ascending: false });
 
   const list = (loans || []) as Loan[];
-  const ids = Array.from(new Set(list.map(l => l.item_id)));
-  let items: Item[] = [];
-  if (ids.length > 0) {
-    const { data: its } = await supabase.from('items').select('*').in('id', ids);
-    items = (its || []) as Item[];
-  }
+  const itemIds = Array.from(new Set(list.map(l => l.item_id)));
+  const counterpartyIds = Array.from(new Set(
+    list.map(l => l.lender_id === user.id ? l.borrower_id : l.lender_id)
+  ));
 
-  const lendingActive = list.filter(l => l.lender_id === user.id && l.status !== 'completed');
-  const borrowingActive = list.filter(l => l.borrower_id === user.id && l.status !== 'completed');
-  const past = list.filter(l => l.status === 'completed');
+  const [{ data: itemsRaw }, { data: profilesRaw }] = await Promise.all([
+    itemIds.length
+      ? supabase.from('items').select('*').in('id', itemIds)
+      : Promise.resolve({ data: [] }),
+    counterpartyIds.length
+      ? supabase.from('profiles').select('id,first_name').in('id', counterpartyIds)
+      : Promise.resolve({ data: [] })
+  ]);
+  const items = (itemsRaw || []) as Item[];
+  const profileById = new Map<string, Pick<Profile, 'id' | 'first_name'>>(
+    ((profilesRaw || []) as Pick<Profile, 'id' | 'first_name'>[]).map(p => [p.id, p])
+  );
 
-  const empty = list.length === 0;
+  // Group loans: out = in-hand right now; coming = handover pending / chain
+  // approved; past = ended (completed/cancelled/lost).
+  const out     = list.filter(l => l.status === 'active' || l.status === 'pending_return');
+  const coming  = list.filter(l => l.status === 'pending_handover');
+  const disputed= list.filter(l => l.status === 'disputed');
+  const past    = list.filter(l => ['completed', 'cancelled', 'lost'].includes(l.status));
+
+  const lentTotal     = list.filter(l => l.lender_id === user.id && l.status === 'completed').length;
+  const borrowedTotal = list.filter(l => l.borrower_id === user.id && l.status === 'completed').length;
+
+  const isoWeek = isoWeekNumber(new Date());
 
   return (
-    <main>
-      <PageHeader title="My loans" />
-      <div className="px-4 max-w-2xl mx-auto pb-8 space-y-7">
-        {empty ? (
-          <div className="card p-8 text-center mt-6">
-            <p className="text-gray-600">No loans yet. Browse items on the home tab to borrow something.</p>
-          </div>
-        ) : (
-          <>
-            <RoleSection
-              title="Lending out"
-              subtitle="Items of yours that are with someone else"
-              accent="#577559"
-              loans={lendingActive}
-              items={items}
-              role="lender"
-              emptyMessage="Nothing of yours is on loan right now."
-            />
+    <main className="max-w-2xl mx-auto pb-8">
+      <header className="px-5 pt-12 pb-5 bg-paper border-b-[1.5px] border-ink">
+        <div className="flex justify-between items-center">
+          <Mono className="text-ink-soft">The · Ledger</Mono>
+          <Mono className="text-ink-soft">WK {isoWeek}</Mono>
+        </div>
+        <h1 className="mt-3 font-display font-extrabold text-[56px] leading-[0.85] tracking-[-0.045em] text-ink">
+          In <Italic>circulation</Italic>.
+        </h1>
+        <p className="font-display font-medium text-[15px] leading-[1.35] text-ink-soft mt-2.5">
+          What you have. What you owe. What came home <Italic>safely</Italic>.
+        </p>
+      </header>
 
-            <RoleSection
-              title="Borrowing"
-              subtitle="Items you currently have or are about to receive"
-              accent="#C7434B"
-              loans={borrowingActive}
+      {list.length === 0 ? (
+        <section className="px-5 py-12 text-center">
+          <p className="font-italic italic text-[18px] text-ink-soft">
+            No loans yet. Browse the feed to borrow something — or list yours so neighbours can ask.
+          </p>
+          <Link href="/home" className="btn-primary inline-flex mt-6">Open the feed</Link>
+        </section>
+      ) : (
+        <>
+          {disputed.length > 0 && (
+            <LedgerGroup
+              title="Disputed"
+              subtitle="Frozen · admin reviewing"
+              count={disputed.length}
+              loans={disputed}
               items={items}
-              role="borrower"
-              emptyMessage="You're not borrowing anything at the moment."
+              userId={user.id}
+              tone="alert"
+              profileById={profileById}
             />
-
-            {past.length > 0 && (
-              <section>
-                <SectionHeader title="Past loans" subtitle="Completed exchanges, both directions" accent="#857150" />
-                <ul className="space-y-3 mt-3">
-                  {past.map(l => (
-                    <LoanRow
-                      key={l.id}
-                      loan={l}
-                      item={items.find(i => i.id === l.item_id)}
-                      userId={user.id}
-                      showRoleBadge
-                    />
-                  ))}
-                </ul>
-              </section>
-            )}
-          </>
-        )}
-      </div>
+          )}
+          {out.length > 0 && (
+            <LedgerGroup
+              title="Out"
+              subtitle="In hand · keep them safe"
+              count={out.length}
+              loans={out}
+              items={items}
+              userId={user.id}
+              profileById={profileById}
+            />
+          )}
+          {coming.length > 0 && (
+            <LedgerGroup
+              title="Coming"
+              subtitle="Awaiting handover"
+              count={coming.length}
+              loans={coming}
+              items={items}
+              userId={user.id}
+              muted
+              profileById={profileById}
+            />
+          )}
+          {past.length > 0 && (
+            <LedgerGroup
+              title="Past"
+              subtitle="Home safe"
+              count={past.length}
+              loans={past}
+              items={items}
+              userId={user.id}
+              muted
+              profileById={profileById}
+            />
+          )}
+          <section className="px-5 pt-6 pb-2 mt-4 border-t border-ink/20">
+            <div className="font-display font-bold text-[22px] leading-[0.95] tracking-[-0.02em] text-ink">
+              +{lentTotal + borrowedTotal} <Italic>completed</Italic> loans.
+            </div>
+            <Mono className="text-ink-soft mt-2 block">
+              · LENT {lentTotal}× · BORROWED {borrowedTotal}× ·
+            </Mono>
+          </section>
+        </>
+      )}
     </main>
   );
 }
 
-function RoleSection({
-  title, subtitle, accent, loans, items, role, emptyMessage
+function LedgerGroup({
+  title, subtitle, count, loans, items, userId, muted, tone, profileById
 }: {
   title: string;
   subtitle: string;
-  accent: string;
+  count: number;
   loans: Loan[];
   items: Item[];
-  role: 'lender' | 'borrower';
-  emptyMessage: string;
+  userId: string;
+  muted?: boolean;
+  tone?: 'alert';
+  profileById: Map<string, Pick<Profile, 'id' | 'first_name'>>;
 }) {
   return (
-    <section>
-      <SectionHeader title={title} subtitle={subtitle} accent={accent} />
-      {loans.length === 0 ? (
-        <p className="text-sm text-gray-500 mt-3">{emptyMessage}</p>
-      ) : (
-        <ul className="space-y-3 mt-3">
-          {loans.map(l => (
-            <LoanRow
-              key={l.id}
-              loan={l}
-              item={items.find(i => i.id === l.item_id)}
-              userId={role === 'lender' ? l.lender_id : l.borrower_id}
-            />
-          ))}
-        </ul>
-      )}
+    <section className={'px-5 pt-6' + (muted ? ' opacity-80' : '')}>
+      <div className="flex justify-between items-baseline pb-2 border-b-[1.5px] border-ink">
+        <h2 className={'font-display font-extrabold text-[30px] tracking-[-0.03em] ' + (tone === 'alert' ? 'text-cat-tools' : 'text-ink')}>
+          {title}<Italic>.</Italic>
+        </h2>
+        <Mono className="text-ink-soft">{count} · {subtitle.toUpperCase()}</Mono>
+      </div>
+      <ul className="flex flex-col">
+        {loans.map(l => (
+          <LedgerRow
+            key={l.id}
+            loan={l}
+            item={items.find(i => i.id === l.item_id)}
+            counterpartyName={profileById.get(l.lender_id === userId ? l.borrower_id : l.lender_id)?.first_name || 'someone'}
+            userId={userId}
+          />
+        ))}
+      </ul>
     </section>
   );
 }
 
-function SectionHeader({ title, subtitle, accent }: { title: string; subtitle: string; accent: string }) {
-  return (
-    <div className="flex items-baseline gap-3 border-b-2 pb-1.5" style={{ borderColor: accent }}>
-      <h2 className="font-display text-2xl tracking-tight leading-none" style={{ color: accent }}>{title}</h2>
-      <span className="font-mono text-[10px] uppercase tracking-wider opacity-70">{subtitle}</span>
-    </div>
-  );
-}
-
-function LoanRow({
-  loan, item, userId, showRoleBadge = false
+function LedgerRow({
+  loan, item, userId, counterpartyName
 }: {
   loan: Loan;
   item: Item | undefined;
   userId: string;
-  showRoleBadge?: boolean;
+  counterpartyName: string;
 }) {
   const isLender = loan.lender_id === userId;
   const palette = paletteForCategory(item?.category);
+  const stateLabel = stateText(loan);
+  const isOverdue = loan.due_at && loan.status === 'active' && new Date(loan.due_at).getTime() < Date.now();
+  const isDisputed = loan.status === 'disputed';
+  const shortNo = item ? numberFromId(item.id) : '—';
+
   return (
     <li>
       <Link
         href={`/loans/${loan.id}`}
-        className="rounded-3xl p-3 flex items-center gap-3 border-2 shadow-soft hover:-translate-y-0.5 transition block"
-        style={{ background: palette.bg, borderColor: palette.accent, color: palette.ink }}
+        className="grid grid-cols-[14px_48px_1fr_auto] gap-3 items-center py-3.5 border-b border-dashed border-ink/30 hover:bg-paper-soft transition px-1 -mx-1"
       >
-        <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 border" style={{ borderColor: palette.accent }}>
-          {item?.photos?.[0] && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.photos[0]} alt="" className="w-full h-full object-cover" />
-          )}
+        <div className="w-3 h-12" style={{ background: palette.bg }} aria-hidden />
+        <div className="font-display font-extrabold text-[22px] leading-[0.85] tracking-[-0.04em] text-ink-soft">
+          {shortNo}
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="font-display text-lg leading-tight line-clamp-1">{item?.title || 'Item'}</div>
-          <div className="font-mono text-[10px] uppercase tracking-wider mt-0.5 opacity-70">
-            {loan.due_at && loan.status !== 'completed' && <>Due {dateLabel(loan.due_at)}</>}
-            {loan.completed_at && <>Completed {dateLabel(loan.completed_at)}</>}
-            {!loan.due_at && !loan.completed_at && (
-              <>{loan.loan_period_days ? `${loan.loan_period_days}-day loan` : 'Open-ended'}</>
-            )}
+        <div className="min-w-0">
+          <div className="font-display font-bold text-[17px] leading-[1.1] tracking-[-0.02em] text-ink line-clamp-1">
+            {item?.title || 'Item'}
+          </div>
+          <div className="mt-0.5 font-display font-medium text-[13px] text-ink-soft">
+            {isLender ? <>To <strong className="font-bold text-ink">{counterpartyName}</strong></> : <>From <strong className="font-bold text-ink">{counterpartyName}</strong></>}
+            {' · '}
+            <span className={isOverdue || isDisputed ? 'text-cat-tools font-mono uppercase tracking-mono text-[10px]' : 'font-mono uppercase tracking-mono text-[10px] text-ink-soft'}>
+              {stateLabel}
+            </span>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-1 shrink-0">
-          {showRoleBadge && (
-            <span className="font-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-white/60">
-              {isLender ? 'Lent' : 'Borrowed'}
-            </span>
-          )}
-          <StatusPill status={loan.status} palette={palette} />
+        <div className="text-right">
+          <span className={'font-italic italic text-[15px] leading-none ' + (isOverdue ? 'text-cat-tools' : 'text-ink')}>
+            {dueText(loan)}
+          </span>
         </div>
       </Link>
     </li>
   );
 }
 
-function StatusPill({ status, palette }: { status: string; palette: { accent: string; pill: string; ink: string } }) {
-  let bg = palette.pill;
-  let fg = palette.ink;
-  const text = status.replace('_', ' ');
-  if (status === 'active') { bg = palette.accent; fg = '#fff'; }
-  if (status === 'pending_handover' || status === 'pending_return') { bg = '#F6D77A'; fg = '#1F2A21'; }
-  if (status === 'completed') { bg = '#E5E1D6'; fg = '#5F4E33'; }
-  if (status === 'disputed') { bg = '#F8B4C8'; fg = '#1F2A21'; }
-  return (
-    <span
-      className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-full"
-      style={{ background: bg, color: fg }}
-    >
-      {text}
-    </span>
-  );
+function stateText(loan: Loan): string {
+  switch (loan.status) {
+    case 'pending_handover': return 'AWAITING HANDOVER';
+    case 'active':           return 'IN HAND';
+    case 'pending_return':   return 'RETURN PENDING';
+    case 'completed':        return 'COMPLETE';
+    case 'cancelled':        return 'CANCELLED';
+    case 'disputed':         return 'DISPUTED';
+    case 'lost':             return 'LOST';
+  }
+}
+
+function dueText(loan: Loan): string {
+  if (loan.status === 'completed' && loan.completed_at) {
+    return `Returned ${shortDate(loan.completed_at)}`;
+  }
+  if (loan.status === 'cancelled') return 'Cancelled';
+  if (loan.status === 'lost') return 'Lost';
+  if (loan.status === 'disputed') return 'Frozen';
+  if (loan.due_at) {
+    const diff = Math.ceil((new Date(loan.due_at).getTime() - Date.now()) / 86_400_000);
+    if (diff < 0) return `${shortDate(loan.due_at)} · ${diff}d`;
+    if (diff === 0) return 'today';
+    return `${shortDate(loan.due_at)} · ${diff}d`;
+  }
+  return 'open-ended';
+}
+
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { weekday: 'short' });
+}
+
+function numberFromId(id: string): string {
+  const hex = id.replace(/-/g, '').slice(0, 6);
+  const n = parseInt(hex, 16) % 999;
+  return n.toString().padStart(3, '0');
+}
+
+// ISO week number — used in the editorial top-right meta.
+function isoWeekNumber(d: Date): number {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date.getTime() - yearStart.getTime()) / 86_400_000) + 1) / 7);
 }

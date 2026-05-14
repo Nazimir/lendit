@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { PageHeader } from '@/components/PageHeader';
+import { Mono, Italic } from '@/components/typography';
+import { MonoBadge } from '@/components/MonoBadge';
 import { paletteForCategory } from '@/lib/categoryStyle';
+import { grainStyle } from '@/lib/grain';
 import type { Item, BorrowRequest } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -31,62 +33,130 @@ export default async function MyListingsPage() {
     }, {} as Record<string, number>);
   }
 
+  const outCount = itemList.filter(i => !i.is_available).length;
+  const restingCount = itemList.filter(i => i.is_available).length;
+  const overdueCount = 0; // TODO: compute from loans with due_at < now
+
+  const today = new Date().toLocaleDateString('en-GB', {
+    weekday: 'short', day: '2-digit', month: 'short'
+  }).toUpperCase().replace(',', ' ·');
+
+  const total = itemList.length;
+  const countWord = numberWord(total);
+
   return (
-    <main>
-      <PageHeader title="My listings" />
-      <div className="px-4 max-w-2xl mx-auto pb-8">
-        <div className="flex gap-2 mb-4">
-          <Link href="/listings/new" className="btn-primary flex-1 text-center">+ New listing</Link>
-          <Link href="/lend" className="btn-secondary flex-1 text-center">Lend in person</Link>
+    <main className="max-w-2xl mx-auto pb-8">
+      {/* Editorial header */}
+      <header className="px-5 pt-12 pb-5 bg-paper border-b-[1.5px] border-ink">
+        <div className="flex justify-between items-center">
+          <Mono className="text-ink-soft">Your · Shelf</Mono>
+          <Mono className="text-ink-soft">{today}</Mono>
         </div>
-        {itemList.length === 0 ? (
-          <div className="card p-8 text-center mt-2">
-            <p className="text-gray-600 mb-4">You haven&apos;t listed anything yet.</p>
-            <Link href="/listings/new" className="btn-primary">List your first item</Link>
+        <h1 className="mt-3 font-display font-extrabold text-[60px] leading-[0.85] tracking-[-0.045em] text-ink">
+          {total === 0 ? <>An <Italic>empty</Italic> shelf.</> : <>{countWord} <Italic>{total === 1 ? 'thing' : 'things'}</Italic>.</>}
+        </h1>
+        {total > 0 && (
+          <p className="font-display font-medium text-[15px] leading-[1.35] text-ink-soft mt-2.5">
+            {outCount} out, {restingCount} resting at home
+            {overdueCount > 0 && <>. <Italic>{overdueCount} overdue</Italic></>}.
+          </p>
+        )}
+      </header>
+
+      <section className="px-5 pt-5">
+        {total === 0 ? (
+          <div className="py-10 text-center">
+            <p className="font-italic italic text-[18px] text-ink-soft">
+              Nothing here yet. Add something a neighbour might want to borrow.
+            </p>
+            <Link href="/listings/new" className="btn-primary inline-flex justify-between items-center gap-3 mt-6">
+              <span>List your first <Italic>thing</Italic></span>
+              <span aria-hidden>+</span>
+            </Link>
           </div>
         ) : (
-          <ul className="space-y-3">
-            {itemList.map(it => {
-              const palette = paletteForCategory(it.category);
-              return (
-                <li key={it.id}>
-                  <Link
-                    href={`/listings/${it.id}`}
-                    className="rounded-3xl p-3 flex gap-3 items-center border-2 shadow-soft hover:-translate-y-0.5 transition block"
-                    style={{ background: palette.bg, borderColor: palette.accent, color: palette.ink }}
-                  >
-                    <div className="w-16 h-16 rounded-2xl overflow-hidden shrink-0 border" style={{ borderColor: palette.accent }}>
-                      {it.photos[0] && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={it.photos[0]} alt="" className="w-full h-full object-cover" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-display text-lg leading-tight line-clamp-1">{it.title}</div>
-                      <div className="font-mono text-[10px] uppercase tracking-wider mt-0.5 opacity-70">
-                        {it.category} · {it.max_loan_days ? `${it.max_loan_days}d max` : 'open-ended'}
-                      </div>
-                      <div className="mt-1.5 flex flex-wrap gap-1.5">
-                        {it.is_available
-                          ? <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: palette.accent, color: '#fff' }}>Available</span>
-                          : <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-soft text-accent-900">On loan</span>}
-                        {it.visibility === 'private' && (
-                          <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-cream-200 text-accent-900">Private</span>
-                        )}
-                        {pendingByItem[it.id] > 0 && (
-                          <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-butter-soft text-accent-900">
-                            {pendingByItem[it.id]} pending
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
+          <ul className="flex flex-col">
+            {itemList.map(item => (
+              <ShelfRow key={item.id} item={item} pending={pendingByItem[item.id] || 0} />
+            ))}
           </ul>
         )}
-      </div>
+      </section>
+
+      {total > 0 && (
+        <section className="px-5 mt-7">
+          <Link
+            href="/listings/new"
+            className="btn-primary w-full flex justify-between items-center"
+          >
+            <span>List a new <Italic>thing</Italic></span>
+            <span aria-hidden>+</span>
+          </Link>
+          <Mono className="text-ink-soft mt-3 text-center block">· Takes 30 seconds ·</Mono>
+          <Link
+            href="/lend"
+            className="btn-secondary w-full mt-3 flex justify-between items-center"
+          >
+            <span>Lend something <Italic>in person</Italic></span>
+            <span aria-hidden>↗</span>
+          </Link>
+        </section>
+      )}
     </main>
   );
+}
+
+function ShelfRow({ item, pending }: { item: Item; pending: number }) {
+  const palette = paletteForCategory(item.category);
+  const shortNo = numberFromId(item.id);
+  return (
+    <li className="grid grid-cols-[38px_76px_1fr_auto] gap-3 items-center py-3.5 border-b border-ink/20">
+      <div className="font-display font-extrabold text-[28px] leading-[0.85] tracking-[-0.04em] text-ink-soft">
+        {shortNo}
+      </div>
+      <Link
+        href={`/listings/${item.id}`}
+        className="w-[76px] aspect-[4/5] overflow-hidden relative"
+        style={{ background: palette.bg, ...grainStyle }}
+      >
+        {item.photos?.[0] && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={item.photos[0]} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        )}
+      </Link>
+      <Link href={`/listings/${item.id}`} className="min-w-0">
+        <Mono className="text-ink-soft block">{item.category}</Mono>
+        <div className="font-display font-bold text-[18px] leading-[1.05] tracking-[-0.02em] text-ink mt-0.5 line-clamp-1">
+          {item.title}
+        </div>
+        <div className="mt-1.5 flex flex-wrap gap-1.5 items-center">
+          {item.is_available
+            ? <MonoBadge variant="outline" prefix={null}>Available</MonoBadge>
+            : <MonoBadge variant="ink" prefix={null}>On loan</MonoBadge>}
+          {item.visibility === 'private' && (
+            <MonoBadge variant="paper-soft" prefix={null}>Private</MonoBadge>
+          )}
+          {pending > 0 && (
+            <MonoBadge variant="kitchen" prefix={null}>{pending} pending</MonoBadge>
+          )}
+        </div>
+      </Link>
+      <Link href={`/listings/${item.id}`} className="font-display font-bold text-[22px] text-ink-soft pl-2">
+        ↗
+      </Link>
+    </li>
+  );
+}
+
+function numberFromId(id: string): string {
+  const hex = id.replace(/-/g, '').slice(0, 6);
+  const n = parseInt(hex, 16) % 999;
+  return n.toString().padStart(3, '0');
+}
+
+// Spell out small numbers for editorial headline ("Twelve things", "Three").
+function numberWord(n: number): string {
+  const words = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
+  if (n <= 12 && n >= 0) return words[n];
+  return String(n);
 }

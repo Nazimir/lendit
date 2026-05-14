@@ -1,14 +1,16 @@
 import { createClient } from '@/lib/supabase/server';
-import { PageHeader } from '@/components/PageHeader';
-import { Stars } from '@/components/Stars';
+import { Wordmark } from '@/components/Wordmark';
+import { Mono, Italic } from '@/components/typography';
+import { Avatar } from '@/components/Avatar';
 import { ProfileEditor } from './ProfileEditor';
 import { SignOut } from './SignOut';
 import { AvatarUploader } from './AvatarUploader';
 import { DeleteAccount } from './DeleteAccount';
 import { AwayModeToggle } from './AwayModeToggle';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
-import { AwayBadge } from '@/components/AwayBadge';
 import { REQUIRE_PHONE_VERIFICATION } from '@/lib/featureFlags';
+import { paletteForCategory } from '@/lib/categoryStyle';
+import { grainStyle } from '@/lib/grain';
 import Link from 'next/link';
 import type { Profile, Review } from '@/lib/types';
 
@@ -19,73 +21,191 @@ export default async function ProfilePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: me } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-  const { data: reviewsRaw } = await supabase
-    .from('reviews').select('*').eq('reviewee_id', user.id).order('created_at', { ascending: false }).limit(20);
+  const [{ data: me }, { data: reviewsRaw }, { count: lentCount }, { count: borrowedCount }] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', user.id).single(),
+    supabase.from('reviews').select('*').eq('reviewee_id', user.id).order('created_at', { ascending: false }).limit(20),
+    supabase.from('loans').select('id', { count: 'exact', head: true }).eq('lender_id', user.id).eq('status', 'completed'),
+    supabase.from('loans').select('id', { count: 'exact', head: true }).eq('borrower_id', user.id).eq('status', 'completed')
+  ]);
 
   const profile = me as Profile;
   const reviews = (reviewsRaw || []) as Review[];
 
   return (
-    <main>
-      <PageHeader title="Profile" action={<SignOut />} />
-      <div className="px-4 max-w-2xl mx-auto pb-8">
-        <div className="card p-5 flex items-center gap-4">
-          <AvatarUploader profile={profile} size={64} />
-          <div className="min-w-0 flex-1">
-            <div className="text-lg font-semibold flex items-center gap-2">
-              {profile?.first_name}
-              {profile?.phone_verified && <VerifiedBadge size={16} />}
-            </div>
-            <div className="text-sm text-gray-500">{profile?.suburb}</div>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <Stars value={Number(profile?.reputation_score ?? 0)} />
-              <span className="text-xs text-gray-600">
-                {Number(profile?.reputation_score ?? 0).toFixed(1)}
-                {' '}
-                ({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})
-                {' · '}
-                {profile?.karma_points ?? 0} karma
-              </span>
-              <AwayBadge awayUntil={profile?.away_until} />
-            </div>
-            {REQUIRE_PHONE_VERIFICATION && !profile?.phone_verified && (
-              <Link
-                href="/verify?next=/profile"
-                className="inline-block mt-2 font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-butter-soft text-accent-900 hover:bg-butter-soft/80"
-              >
-                Verify your phone
-              </Link>
-            )}
-          </div>
-        </div>
+    <main className="max-w-2xl mx-auto pb-8">
+      <ProfileMasthead
+        profile={profile}
+        own
+        lent={lentCount ?? 0}
+        borrowed={borrowedCount ?? 0}
+        reviewsCount={reviews.length}
+        signOut={<SignOut />}
+      />
 
-        <div className="mt-5">
-          <ProfileEditor profile={profile} />
-        </div>
+      <section className="px-5 pt-6">
+        <AvatarUploader profile={profile} size={64} />
+        <Mono className="text-ink-soft mt-2 block">Tap your avatar to change your photo</Mono>
 
-        <div className="mt-3">
-          <AwayModeToggle profile={profile} />
-        </div>
-
-        <div className="mt-3 text-center">
-          <DeleteAccount />
-        </div>
-
-        <h2 className="font-mono text-[10px] font-semibold text-gray-700 mt-7 mb-3 uppercase tracking-wider">Reviews</h2>
-        {reviews.length === 0 ? (
-          <p className="text-gray-500 text-sm">No reviews yet.</p>
-        ) : (
-          <ul className="space-y-3">
-            {reviews.map(r => (
-              <li key={r.id} className="card p-3">
-                <Stars value={r.stars} />
-                {r.comment && <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{r.comment}</p>}
-              </li>
-            ))}
-          </ul>
+        {REQUIRE_PHONE_VERIFICATION && !profile?.phone_verified && (
+          <Link
+            href="/verify?next=/profile"
+            className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 font-mono text-[10px] uppercase tracking-mono bg-cat-kitchen text-ink"
+          >
+            · Verify your phone
+          </Link>
         )}
-      </div>
+      </section>
+
+      <section className="px-5 mt-7">
+        <ProfileEditor profile={profile} />
+      </section>
+
+      <section className="px-5 mt-3">
+        <AwayModeToggle profile={profile} />
+      </section>
+
+      <section className="px-5 mt-9">
+        <div className="flex items-baseline justify-between pb-2 mb-4 border-b-[1.5px] border-ink">
+          <h2 className="font-display font-bold text-[22px] tracking-[-0.02em] text-ink">
+            What <Italic>they say</Italic>
+          </h2>
+          <Mono className="text-ink-soft">
+            {reviews.length === 0 ? 'NONE YET' : `${reviews.length} ${reviews.length === 1 ? 'REVIEW' : 'REVIEWS'}`}
+          </Mono>
+        </div>
+        {reviews.length === 0 ? (
+          <p className="font-italic italic text-ink-soft text-sm py-3">No reviews yet. The first ones come after your first completed loan.</p>
+        ) : (
+          <div className="flex flex-col">
+            {reviews.map(r => (
+              <div key={r.id} className="py-4 border-b border-dashed border-ink/30">
+                {r.comment && (
+                  <p className="font-italic italic text-[18px] leading-[1.3] text-ink">
+                    &ldquo;{r.comment}&rdquo;
+                  </p>
+                )}
+                <Mono className="text-ink-soft mt-2 block">
+                  · {r.stars} ★ · {timeAgoShort(r.created_at)}
+                </Mono>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="px-5 mt-9 text-center">
+        <DeleteAccount />
+      </section>
     </main>
   );
+}
+
+function ProfileMasthead({
+  profile, own, lent, borrowed, reviewsCount, signOut, actionSlot
+}: {
+  profile: Profile;
+  own: boolean;
+  lent: number;
+  borrowed: number;
+  reviewsCount: number;
+  signOut?: React.ReactNode;
+  actionSlot?: React.ReactNode;
+}) {
+  // Personal territory colour — derived from user id so every user gets a
+  // consistent editorial colour even without a photo.
+  const userTerritory = territoryForUser(profile.id);
+  const palette = paletteForCategory(userTerritory);
+  const sinceMonth = profile.created_at
+    ? new Date(profile.created_at).toLocaleDateString(undefined, { month: 'short', year: '2-digit' }).toUpperCase().replace(/\s+/g, ' ')
+    : '—';
+  const rating = Number(profile.reputation_score ?? 0).toFixed(1);
+
+  return (
+    <header
+      className="px-5 pt-12 pb-7"
+      style={{ background: palette.bg, color: palette.ink, ...grainStyle }}
+    >
+      <div className="flex justify-between items-center">
+        <Wordmark size={20} />
+        <Mono style={{ color: palette.ink, opacity: 0.85 }}>SINCE {sinceMonth}</Mono>
+      </div>
+      <div className="mt-5 flex justify-between items-center">
+        <Mono style={{ color: palette.ink, opacity: 0.85 }}>
+          {own ? 'You' : 'Neighbour'} · /u/{profile.id.slice(0, 6)}
+        </Mono>
+        {(signOut || actionSlot) && (
+          <div className="flex items-center gap-2">
+            {actionSlot}
+            {signOut}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6 flex items-end gap-4">
+        <div className="shrink-0">
+          <Avatar url={profile.photo_url} name={profile.first_name} size={92} />
+        </div>
+        <div className="min-w-0">
+          <h1
+            className="font-display font-extrabold leading-[0.9] tracking-[-0.035em]"
+            style={{ color: palette.ink, fontSize: 'clamp(40px, 13vw, 56px)' }}
+          >
+            {profile.first_name}<span style={{ color: palette.ink }}><Italic>.</Italic></span>
+          </h1>
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            <Mono style={{ color: palette.ink, opacity: 0.85 }}>· {profile.suburb?.toUpperCase()}</Mono>
+            {profile.phone_verified && <VerifiedBadge size={14} />}
+          </div>
+        </div>
+      </div>
+
+      {/* Stats strip — inline at bottom of masthead */}
+      <div
+        className="mt-6 grid grid-cols-4"
+        style={{ borderTop: `1px solid ${palette.ink}` }}
+      >
+        <Stat label="Karma" value={profile.karma_points ?? 0} palette={palette} />
+        <Stat label="Rating" value={rating} palette={palette} divider />
+        <Stat label="Lent" value={`${lent}×`} palette={palette} divider />
+        <Stat label="Borrowed" value={`${borrowed}×`} palette={palette} divider />
+      </div>
+    </header>
+  );
+}
+
+function Stat({
+  label, value, palette, divider
+}: {
+  label: string;
+  value: React.ReactNode;
+  palette: { ink: string };
+  divider?: boolean;
+}) {
+  return (
+    <div
+      className="px-2 py-3 text-center"
+      style={{ borderLeft: divider ? `1px solid ${palette.ink}` : undefined }}
+    >
+      <Mono style={{ color: palette.ink, opacity: 0.7 }}>{label}</Mono>
+      <div
+        className="font-display font-extrabold mt-1"
+        style={{ color: palette.ink, fontSize: 18 }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+// Each user is assigned a stable territory color based on their UUID.
+// Distinct from item territories — gives each neighbour a personal palette.
+function territoryForUser(id: string): string {
+  const territories = ['Textiles', 'Music', 'Outdoor & Camping', 'Baby & Kids', 'Garden', 'Books & Media', 'Tools', 'Kitchen', 'Electronics', 'Sports'];
+  const hex = id.replace(/-/g, '').slice(0, 4);
+  return territories[parseInt(hex, 16) % territories.length];
+}
+
+function timeAgoShort(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' }).toUpperCase();
 }
