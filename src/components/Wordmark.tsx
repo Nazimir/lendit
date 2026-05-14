@@ -39,7 +39,7 @@ export function Wordmark({
         style={{
           width: '0.18em',
           height: '0.18em',
-          marginBottom: '0.13em',
+          marginBottom: '0.17em',
           marginLeft: '0.04em'
         }}
       />
