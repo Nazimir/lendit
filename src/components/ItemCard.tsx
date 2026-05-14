@@ -76,13 +76,14 @@ function HeroVariant({ item }: { item: ItemWithOwner }) {
       </div>
 
       {/* Photo or placeholder, inset and framed.
-          Inset values keep the photo around 56% × 36% of the card — tight
-          enough that the territory canvas reads as the frame and the title
-          block below has room to breathe. */}
+          Inset values give the photo ~64% × 58% of the card — large enough
+          that the territory reads as a margin rather than a vast frame,
+          and the bottom of the photo sits flush against the title block
+          for editorial overlap. */}
       <div
         className="absolute rounded-3xl overflow-hidden"
         style={{
-          top: '26%', bottom: '38%', left: '22%', right: '22%',
+          top: '22%', bottom: '20%', left: '18%', right: '18%',
           border: item.photos?.[0] ? 'none' : `1.5px dashed ${palette.ink}`,
           opacity: item.photos?.[0] ? 1 : 0.7,
           background: item.photos?.[0] ? 'transparent' : 'rgba(255,255,255,0.06)'
