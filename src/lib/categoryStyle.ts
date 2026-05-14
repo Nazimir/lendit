@@ -1,28 +1,51 @@
-// A pastel zine-style colour palette per category. Each entry returns a few
-// well-balanced tones we can use across the listing page (background panel,
-// accent strip, body text, and an annotation handwriting colour).
+// Partaz visual reset — per-category territory palettes.
+//
+// Each category maps to one of 10 "territories" defined in the design system.
+// A territory is the FULL canvas of a card (bg), the text colour that goes on
+// top of it (ink), plus a few accent values used by older components.
+//
+// Token mapping:
+//   bg       — territory background (full bleed on cards)
+//   ink      — text colour ON the territory (paper for dark territories,
+//              ink-dark for light territories)
+//   accent   — secondary accent colour, used by old components for borders
+//              and accent pills. Set to ink-dark (#16130D) so borders and
+//              accents read as sharp editorial lines across every territory.
+//   scribble — italic-quote colour. Matches `ink` so quotes are legible.
+//   pill     — small overlay pill background (paper-soft) used on photos.
 
 export interface CategoryPalette {
-  bg: string;       // soft panel background
-  ink: string;      // dark body / heading colour
-  accent: string;   // strong accent for stripes, pills, underlines
-  scribble: string; // handwritten-annotation colour
-  pill: string;     // a soft pill bg colour
+  bg: string;
+  ink: string;
+  accent: string;
+  scribble: string;
+  pill: string;
 }
 
+const PAPER = '#F2ECE0';
+const PAPER_SOFT = '#E8E1D2';
+const INK = '#16130D';
+
+// Helper — every territory shares the same accent (ink) and pill (paper-soft).
+function t(bg: string, textOn: string): CategoryPalette {
+  return { bg, ink: textOn, accent: INK, scribble: textOn, pill: PAPER_SOFT };
+}
+
+// Old display names → new territories.
+// (Existing items in the DB use these category strings, so we map by them.)
 const PALETTES: Record<string, CategoryPalette> = {
-  'Tools':            { bg: '#FBE7C6', ink: '#5A3F12', accent: '#D08C2C', scribble: '#A65A1A', pill: '#FFD58A' },
-  'Kitchen':          { bg: '#FAD2D2', ink: '#5A1B1B', accent: '#C7434B', scribble: '#A12731', pill: '#FFB3B3' },
-  'Outdoor & Camping':{ bg: '#D9E7C8', ink: '#22381E', accent: '#3F7D3F', scribble: '#2E5A2E', pill: '#A8CC9C' },
-  'Sports':           { bg: '#CFE5F5', ink: '#13344B', accent: '#2A6F9D', scribble: '#1F4E73', pill: '#9CC9E8' },
-  'Books & Media':    { bg: '#E9DFF6', ink: '#2E1F4F', accent: '#6B4DBA', scribble: '#503793', pill: '#C9B7EE' },
-  'Electronics':      { bg: '#D4E2DD', ink: '#1F3530', accent: '#3E7A66', scribble: '#2C5849', pill: '#A8C9BE' },
-  'Garden':           { bg: '#E1EBC7', ink: '#283517', accent: '#587C2C', scribble: '#3E5A1F', pill: '#BFD58C' },
-  'Party & Events':   { bg: '#FFE2EE', ink: '#4F1530', accent: '#C95084', scribble: '#9C3066', pill: '#FFB6D5' },
-  'Baby & Kids':      { bg: '#FFF1C2', ink: '#4A3A0F', accent: '#D6A53A', scribble: '#A87E22', pill: '#FFE08A' },
-  'Music':            { bg: '#E8D7C7', ink: '#3A2515', accent: '#A0673A', scribble: '#7A4623', pill: '#D6B89C' },
-  'Travel':           { bg: '#CFE0E2', ink: '#0F3338', accent: '#2D6F77', scribble: '#1F5057', pill: '#A6CDD1' },
-  'Other':            { bg: '#EAE6DC', ink: '#3B362A', accent: '#857150', scribble: '#5F4E33', pill: '#CFC7B5' }
+  'Tools':             t('#D8421C', PAPER),  // territory: tools     (red-orange)
+  'Kitchen':           t('#EBC65A', INK),    // territory: kitchen   (mustard yellow)
+  'Outdoor & Camping': t('#B6C6CC', INK),    // territory: outdoor   (cool blue-gray)
+  'Sports':            t('#8C9555', PAPER),  // territory: sports    (olive)
+  'Books & Media':     t('#1E2C44', PAPER),  // territory: books     (navy)
+  'Electronics':       t('#DCD3BE', INK),    // territory: tech      (taupe)
+  'Garden':            t('#4F6049', PAPER),  // territory: garden    (forest green)
+  'Party & Events':    t('#E9967A', INK),    // territory: music     (warm coral)
+  'Baby & Kids':       t('#BFB1D0', INK),    // territory: baby      (lilac)
+  'Music':             t('#E9967A', INK),    // territory: music     (warm coral)
+  'Travel':            t('#B6C6CC', INK),    // territory: outdoor   (cool blue-gray)
+  'Other':             t('#DCD3BE', INK)     // territory: tech      (neutral taupe)
 };
 
 const FALLBACK = PALETTES['Other'];
