@@ -110,13 +110,16 @@ function ShelfRow({ item, pending }: { item: Item; pending: number }) {
   const palette = paletteForCategory(item.category);
   const shortNo = numberFromId(item.id);
   return (
-    <li className="grid grid-cols-[38px_76px_1fr_auto] gap-3 items-center py-3.5 border-b border-ink/20">
-      <div className="font-display font-extrabold text-[28px] leading-[0.85] tracking-[-0.04em] text-ink-soft">
+    <li className="grid grid-cols-[12px_52px_64px_1fr_auto] gap-3 items-center py-3.5 border-b border-ink/15">
+      {/* Territory color strip — keeps category palette visible even when
+          a real photo covers the photo slot. */}
+      <div className="w-3 h-14 self-center" style={{ background: palette.bg }} aria-hidden />
+      <div className="font-display font-extrabold text-[24px] leading-[0.85] tracking-[-0.04em] text-ink-soft text-right pr-0.5">
         {shortNo}
       </div>
       <Link
         href={`/listings/${item.id}`}
-        className="w-[76px] aspect-[4/5] overflow-hidden relative"
+        className="w-16 aspect-square overflow-hidden relative rounded-2xl"
         style={{ background: palette.bg, ...grainStyle }}
       >
         {item.photos?.[0] && (

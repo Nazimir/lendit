@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Mono, Italic } from '@/components/typography';
 import { paletteForCategory } from '@/lib/categoryStyle';
+import { territoryForUser } from '@/lib/personalTerritory';
 import type { Loan, Item, Profile } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -177,7 +178,13 @@ function LedgerRow({
   counterpartyName: string;
 }) {
   const isLender = loan.lender_id === userId;
-  const palette = paletteForCategory(item?.category);
+  // Strip colour comes from the COUNTERPARTY'S personal territory, not from
+  // the item's category. Two benefits:
+  //   1. Consecutive items with the same category no longer look identical
+  //      in the ledger — variety comes from the people, not the things.
+  //   2. You start to recognise neighbours by colour over time.
+  const counterpartyId = isLender ? loan.borrower_id : loan.lender_id;
+  const stripPalette = paletteForCategory(territoryForUser(counterpartyId));
   const stateLabel = stateText(loan);
   const isOverdue = loan.due_at && loan.status === 'active' && new Date(loan.due_at).getTime() < Date.now();
   const isDisputed = loan.status === 'disputed';
@@ -189,7 +196,7 @@ function LedgerRow({
         href={`/loans/${loan.id}`}
         className="grid grid-cols-[14px_48px_1fr_auto] gap-3 items-center py-3.5 border-b border-dashed border-ink/30 hover:bg-paper-soft transition px-1 -mx-1"
       >
-        <div className="w-3 h-12" style={{ background: palette.bg }} aria-hidden />
+        <div className="w-3 h-12" style={{ background: stripPalette.bg }} aria-hidden />
         <div className="font-display font-extrabold text-[22px] leading-[0.85] tracking-[-0.04em] text-ink-soft">
           {shortNo}
         </div>

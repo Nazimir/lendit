@@ -11,6 +11,7 @@ import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { REQUIRE_PHONE_VERIFICATION } from '@/lib/featureFlags';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { grainStyle } from '@/lib/grain';
+import { territoryForUser } from '@/lib/personalTerritory';
 import Link from 'next/link';
 import type { Profile, Review } from '@/lib/types';
 
@@ -195,14 +196,6 @@ function Stat({
       </div>
     </div>
   );
-}
-
-// Each user is assigned a stable territory color based on their UUID.
-// Distinct from item territories — gives each neighbour a personal palette.
-function territoryForUser(id: string): string {
-  const territories = ['Textiles', 'Music', 'Outdoor & Camping', 'Baby & Kids', 'Garden', 'Books & Media', 'Tools', 'Kitchen', 'Electronics', 'Sports'];
-  const hex = id.replace(/-/g, '').slice(0, 4);
-  return territories[parseInt(hex, 16) % territories.length];
 }
 
 function timeAgoShort(iso: string): string {

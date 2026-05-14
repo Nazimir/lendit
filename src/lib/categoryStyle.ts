@@ -38,7 +38,7 @@ const PALETTES: Record<string, CategoryPalette> = {
   'Kitchen':           t('#EBC65A', INK),    // territory: kitchen   (mustard yellow)
   'Outdoor & Camping': t('#B6C6CC', INK),    // territory: outdoor   (cool blue-gray)
   'Sports':            t('#8C9555', PAPER),  // territory: sports    (olive)
-  'Books & Media':     t('#1E2C44', PAPER),  // territory: books     (navy)
+  'Books & Media':     t('#5C3A1E', PAPER),  // territory: books     (chestnut brown)
   'Electronics':       t('#DCD3BE', INK),    // territory: tech      (taupe)
   'Garden':            t('#4F6049', PAPER),  // territory: garden    (forest green)
   'Party & Events':    t('#E9967A', INK),    // territory: music     (warm coral)

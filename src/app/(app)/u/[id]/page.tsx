@@ -10,6 +10,7 @@ import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { AwayBadge } from '@/components/AwayBadge';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { grainStyle } from '@/lib/grain';
+import { territoryForUser } from '@/lib/personalTerritory';
 import type { Profile, Review, Item, ItemWithOwner } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -217,8 +218,3 @@ function Stat({
   );
 }
 
-function territoryForUser(id: string): string {
-  const territories = ['Textiles', 'Music', 'Outdoor & Camping', 'Baby & Kids', 'Garden', 'Books & Media', 'Tools', 'Kitchen', 'Electronics', 'Sports'];
-  const hex = id.replace(/-/g, '').slice(0, 4);
-  return territories[parseInt(hex, 16) % territories.length];
-}
