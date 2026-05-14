@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Wordmark } from '@/components/Wordmark';
 import { Mono, Italic } from '@/components/typography';
+import { PasswordInput } from '@/components/PasswordInput';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -104,9 +105,7 @@ export default function ResetPasswordPage() {
           <form onSubmit={onSubmit} className="mt-10">
             <div className="mb-6">
               <label className="label">New password</label>
-              <input
-                className="input"
-                type="password"
+              <PasswordInput
                 autoComplete="new-password"
                 required
                 minLength={8}
@@ -117,9 +116,7 @@ export default function ResetPasswordPage() {
             </div>
             <div className="mb-6">
               <label className="label">Confirm new password</label>
-              <input
-                className="input"
-                type="password"
+              <PasswordInput
                 autoComplete="new-password"
                 required
                 minLength={8}

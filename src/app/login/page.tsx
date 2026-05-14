@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Wordmark } from '@/components/Wordmark';
 import { Mono, Italic } from '@/components/typography';
+import { PasswordInput } from '@/components/PasswordInput';
 
 function LoginInner() {
   const router = useRouter();
@@ -62,9 +63,7 @@ function LoginInner() {
                 Forgot?
               </Link>
             </div>
-            <input
-              className="input"
-              type="password"
+            <PasswordInput
               autoComplete="current-password"
               required
               value={password}

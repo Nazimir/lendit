@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Mono, Italic } from '@/components/typography';
+import { PasswordInput } from '@/components/PasswordInput';
 import { claimInvite } from '@/app/(app)/lend/actions';
 
 export function ClaimForm({
@@ -115,9 +116,8 @@ function NewUserSignup({ token, recipientHint, lenderName }: { token: string; re
       </div>
       <div className="mb-6">
         <label className="label">Password</label>
-        <input
-          className="input"
-          type="password"
+        <PasswordInput
+          autoComplete="new-password"
           required
           minLength={8}
           value={password}

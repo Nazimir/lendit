@@ -8,6 +8,7 @@ import { normalizeImage } from '@/lib/imageUpload';
 import { ProgressBanner } from '@/components/Spinner';
 import { Wordmark } from '@/components/Wordmark';
 import { Mono, Italic } from '@/components/typography';
+import { PasswordInput } from '@/components/PasswordInput';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -127,7 +128,7 @@ export default function SignupPage() {
           </div>
           <div className="mb-6">
             <label className="label">Password</label>
-            <input className="input" type="password" autoComplete="new-password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} />
+            <PasswordInput autoComplete="new-password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} />
             <Mono className="text-ink-soft mt-2 block">8+ characters</Mono>
           </div>
 

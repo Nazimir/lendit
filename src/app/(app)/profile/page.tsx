@@ -7,6 +7,7 @@ import { SignOut } from './SignOut';
 import { AvatarUploader } from './AvatarUploader';
 import { DeleteAccount } from './DeleteAccount';
 import { AwayModeToggle } from './AwayModeToggle';
+import { AccountSettings } from './AccountSettings';
 import { VerifiedBadge } from '@/components/VerifiedBadge';
 import { REQUIRE_PHONE_VERIFICATION } from '@/lib/featureFlags';
 import { paletteForCategory } from '@/lib/categoryStyle';
@@ -60,6 +61,10 @@ export default async function ProfilePage() {
 
       <section className="px-5 mt-7">
         <ProfileEditor profile={profile} />
+      </section>
+
+      <section className="px-5 mt-9">
+        <AccountSettings profile={profile} />
       </section>
 
       <section className="px-5 mt-3">
