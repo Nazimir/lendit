@@ -143,8 +143,13 @@ function SecondaryVariant({ item }: { item: ItemWithOwner }) {
           style={{ aspectRatio: '3/4', background: palette.bg, color: palette.ink, ...grainStyle }}
         >
           <Photo src={item.photos?.[0]} alt={item.title} fallback={item.title.toLowerCase()} />
-          <div className="absolute top-2 left-2.5">
-            <Mono style={{ color: palette.ink } as React.CSSProperties}>{item.category}</Mono>
+          {/* Category label as a small territory-coloured chip — keeps the
+              category palette visible even when a real photo fills the slot. */}
+          <div
+            className="absolute top-2 left-2 px-2 py-1 font-mono text-[10px] uppercase tracking-mono"
+            style={{ background: palette.bg, color: palette.ink }}
+          >
+            {item.category}
           </div>
           {!item.is_available && (
             <div className="absolute top-2 right-2">
@@ -187,10 +192,12 @@ function TileVariant({ item }: { item: ItemWithOwner }) {
         style={{ aspectRatio: '1', background: palette.bg, color: palette.ink, ...grainStyle }}
       >
         <Photo src={item.photos?.[0]} alt={item.title} fallback={item.title.toLowerCase()} />
-        <div className="absolute top-1.5 left-2">
-          <Mono style={{ color: palette.ink, fontSize: 8 } as React.CSSProperties}>
-            {item.category}
-          </Mono>
+        {/* Category chip in territory colour, sits over the photo. */}
+        <div
+          className="absolute top-1.5 left-1.5 px-1.5 py-0.5 font-mono uppercase tracking-mono"
+          style={{ background: palette.bg, color: palette.ink, fontSize: 8 }}
+        >
+          {item.category}
         </div>
         {!item.is_available && (
           <div className="absolute bottom-1.5 right-2">
