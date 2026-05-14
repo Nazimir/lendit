@@ -1,6 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { PageHeader } from '@/components/PageHeader';
 import { ItemAd } from '@/components/ItemAd';
 import { VerifyGate } from '@/components/VerifyGate';
 import { SafetyMenu } from '@/components/SafetyMenu';
@@ -44,31 +43,29 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
   }
 
   return (
-    <main>
-      <PageHeader
-        title="Listing"
+    <main className="max-w-2xl mx-auto pb-8">
+      <ItemAd
+        item={item as Item}
+        owner={(owner as Profile) || null}
         back="/home"
-        action={<SafetyMenu targetKind="item" targetId={item.id} context="this listing" />}
+        actionSlot={<SafetyMenu targetKind="item" targetId={item.id} context="this listing" />}
       />
-      <div className="px-4 max-w-2xl mx-auto pb-8">
-        <ItemAd item={item as Item} owner={(owner as Profile) || null} />
 
-        <div className="mt-6">
-          {REQUIRE_PHONE_VERIFICATION && !me?.phone_verified ? (
-            <VerifyGate action="send a borrow request" next={`/items/${params.id}`} />
-          ) : (
-            <RequestForm
-              itemId={item.id}
-              ownerId={(item as Item).owner_id}
-              existing={existing}
-              available={item.is_available}
-              chainHandoffsAllowed={(item as Item).chain_handoffs_allowed}
-              activeLoanId={activeLoan?.id || null}
-              activeBorrowerId={activeLoan?.borrower_id || null}
-              currentUserId={user.id}
-            />
-          )}
-        </div>
+      <div className="px-5 mt-7">
+        {REQUIRE_PHONE_VERIFICATION && !me?.phone_verified ? (
+          <VerifyGate action="send a borrow request" next={`/items/${params.id}`} />
+        ) : (
+          <RequestForm
+            itemId={item.id}
+            ownerId={(item as Item).owner_id}
+            existing={existing}
+            available={item.is_available}
+            chainHandoffsAllowed={(item as Item).chain_handoffs_allowed}
+            activeLoanId={activeLoan?.id || null}
+            activeBorrowerId={activeLoan?.borrower_id || null}
+            currentUserId={user.id}
+          />
+        )}
       </div>
     </main>
   );

@@ -31,7 +31,6 @@ export default async function HomePage({ searchParams }: { searchParams: { q?: s
       .from('items_with_owner')
       .select('*')
       .eq('is_available', true)
-      .neq('owner_id', user.id)
       .order('created_at', { ascending: false })
       .limit(60);
     items = (feed || []) as ItemWithOwner[];

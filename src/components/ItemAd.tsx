@@ -1,184 +1,294 @@
 import Link from 'next/link';
 import { Avatar } from '@/components/Avatar';
-import { Stars } from '@/components/Stars';
 import { Lightbox } from '@/components/Lightbox';
+import { Wordmark } from '@/components/Wordmark';
+import { Mono, Italic } from '@/components/typography';
+import { MonoBadge } from '@/components/MonoBadge';
 import { dateLabel } from '@/lib/utils';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { QUIRK_QUESTIONS } from '@/lib/types';
-import type { Item, Profile } from '@/lib/types';
+import type { Item, Profile, Quirks } from '@/lib/types';
 
 /**
- * The full zine-style "ad page" treatment for a single item.
- * Used for both the public item view and the owner's own management view.
+ * Full editorial item detail block. Used by:
+ *   - /items/[id]          (public view, borrowers)
+ *   - /listings/[id]       (owner view)
+ *
+ * The masthead includes the territory background, wordmark, back link,
+ * oversized item index, title with italic break, quirk line, status
+ * badges, and optional action slot (used for SafetyMenu on the public
+ * view). Below the masthead: photo gallery, description, quirks
+ * "flourishes", and owner card.
+ *
+ * Owner-specific actions (edit / lend / make private / delete) live
+ * outside this component, on the listings page.
  */
 export function ItemAd({
   item,
   owner,
-  ownerView = false
+  ownerView = false,
+  back = '/home',
+  actionSlot
 }: {
   item: Item;
   owner: Profile | null;
   ownerView?: boolean;
+  back?: string;
+  actionSlot?: React.ReactNode;
 }) {
   const palette = paletteForCategory(item.category);
+  const { first, rest } = splitTitle(item.title);
+  const primaryQuirk = firstQuirk(item.quirks);
   const quirkEntries = QUIRK_QUESTIONS
-    .map(q => ({ q, value: (item.quirks || {})[q.key] as string | undefined }))
+    .map(q => ({ key: q.key, label: q.label, value: (item.quirks || {})[q.key] as string | undefined }))
     .filter(x => x.value && x.value.trim().length > 0);
-
-  const shortId = item.id.replace(/-/g, '').slice(0, 12).toUpperCase();
-  const createdLabel = new Date(item.created_at).toLocaleDateString(undefined, {
-    day: '2-digit', month: '2-digit', year: '2-digit'
-  }).replace(/\//g, '-');
+  const indexNumber = numberFromId(item.id);
+  const photos = (item.photos || []).filter(Boolean);
 
   return (
-    <article
-      className="rounded-3xl overflow-hidden border-2 shadow-soft"
-      style={{ background: palette.bg, borderColor: palette.accent, color: palette.ink }}
-    >
-      {/* HERO */}
-      <div className="px-5 pt-5 pb-3 flex items-start justify-between gap-3">
-        <div className="font-mono text-[10px] uppercase tracking-wider opacity-70">
-          {item.category} · Listing
+    <article>
+      {/* ───────────────────────────────────────────────────────
+          MASTHEAD — full territory
+          ─────────────────────────────────────────────────────── */}
+      <header
+        className="px-5 pt-12 pb-7 -mx-4 sm:mx-0"
+        style={{ background: palette.bg, color: palette.ink }}
+      >
+        {/* Top row: wordmark | category label / actions */}
+        <div className="flex justify-between items-center">
+          <Wordmark size={20} />
+          <div className="flex items-center gap-2" style={{ color: palette.ink }}>
+            <Mono style={{ color: palette.ink, opacity: 0.85 }}>
+              {ownerView ? 'Your listing' : item.category}
+            </Mono>
+            {actionSlot}
+          </div>
         </div>
-        <div className="font-mono text-[10px] uppercase tracking-wider opacity-70">
-          No. {shortId.slice(0, 6)}
-        </div>
-      </div>
 
-      <div className="px-5 pb-3">
-        <h1 className="font-display text-5xl leading-[0.95] tracking-tight" style={{ color: palette.ink }}>
-          {item.title}
+        {/* Back link */}
+        <Link href={back} className="mt-5 inline-block hover:opacity-70 transition" style={{ color: palette.ink }}>
+          <Mono style={{ color: palette.ink }}>← Back</Mono>
+        </Link>
+
+        {/* Item index — oversized № */}
+        <div className="mt-6 flex items-baseline gap-3">
+          <span
+            className="font-display font-extrabold tracking-[0.04em]"
+            style={{ color: palette.ink, fontSize: 18, opacity: 0.85 }}
+          >
+            №
+          </span>
+          <span
+            className="font-display font-extrabold leading-[0.85] tracking-[-0.05em]"
+            style={{ color: palette.ink, fontSize: 'clamp(64px, 22vw, 92px)' }}
+          >
+            {indexNumber}
+          </span>
+        </div>
+
+        {/* Title with italic break */}
+        <h1
+          className="mt-4 font-display font-extrabold leading-[0.88] tracking-[-0.035em]"
+          style={{ color: palette.ink, fontSize: 'clamp(40px, 13vw, 52px)' }}
+        >
+          {first}
+          {rest && (
+            <>
+              <br />
+              <Italic>{rest}.</Italic>
+            </>
+          )}
         </h1>
-        <div className="flex flex-wrap gap-2 mt-3">
-          <Pill palette={palette}>{item.max_loan_days ? `Up to ${item.max_loan_days}d` : 'Open-ended'}</Pill>
-          {item.extensions_allowed && item.max_loan_days && <Pill palette={palette}>Extensions OK</Pill>}
-          {!item.is_available && (
-            <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-rose-soft text-accent-900">
-              On loan
-            </span>
-          )}
-          {item.is_available && (
-            <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-full" style={{ background: palette.accent, color: '#fff' }}>
-              Available
-            </span>
-          )}
-        </div>
-      </div>
 
-      {/* PHOTO */}
-      {item.photos[0] && (
-        <div className="mx-5 mb-4 border-2 rounded-2xl overflow-hidden" style={{ borderColor: palette.accent }}>
-          <Lightbox src={item.photos[0]} alt={item.title} className="w-full aspect-[4/3] object-cover" />
+        {/* Quirk line */}
+        {primaryQuirk && (
+          <div
+            className="mt-3 font-italic italic leading-[1.3] max-w-[320px]"
+            style={{ color: palette.ink, fontSize: 18 }}
+          >
+            &ldquo;{primaryQuirk}&rdquo;
+          </div>
+        )}
+
+        {/* Status pills */}
+        <div className="mt-5 flex gap-2 flex-wrap">
+          {item.is_available
+            ? <MonoBadge variant="ink">Available</MonoBadge>
+            : <MonoBadge variant="ink">On loan</MonoBadge>}
+          {item.max_loan_days
+            ? <MonoBadge variant="outline" prefix={null}>Up to {item.max_loan_days}d</MonoBadge>
+            : <MonoBadge variant="outline" prefix={null}>Open-ended</MonoBadge>}
+          {item.extensions_allowed && item.max_loan_days && (
+            <MonoBadge variant="outline" prefix={null}>Extensions OK</MonoBadge>
+          )}
+          {item.visibility === 'private' && (
+            <MonoBadge variant="outline" prefix={null}>Private</MonoBadge>
+          )}
         </div>
-      )}
-      {item.photos.length > 1 && (
-        <div className="mx-5 mb-4 grid grid-cols-4 gap-2">
-          {item.photos.slice(1).map((p: string, i: number) => (
-            <div key={i} className="border rounded-xl overflow-hidden" style={{ borderColor: palette.accent }}>
-              <Lightbox src={p} alt={item.title} className="w-full aspect-square object-cover" />
+
+        {/* Expected back (for non-owners viewing an item out on loan) */}
+        {!item.is_available && item.expected_back_at && !ownerView && owner && (
+          <div
+            className="mt-5 px-3.5 py-3 flex items-center gap-3 border"
+            style={{ borderColor: palette.ink, background: 'rgba(255,255,255,0.5)' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={palette.ink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 2" />
+            </svg>
+            <div className="text-sm" style={{ color: palette.ink }}>
+              <span className="opacity-70">Expected back </span>
+              <span className="font-bold">{dateLabel(item.expected_back_at)}</span>
+              {' · '}
+              <Link href={`/messages/${owner.id}`} className="font-bold underline">
+                Message {owner.first_name}
+              </Link>
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* EXPECTED BACK */}
-      {!item.is_available && item.expected_back_at && (
-        <div className="mx-5 mb-4 px-4 py-3 rounded-xl flex items-center gap-3" style={{ background: 'rgba(255,255,255,0.55)' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={palette.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 7v5l3 2" />
-          </svg>
-          <div className="text-sm">
-            <span className="opacity-70">Expected back </span>
-            <span className="font-medium">{dateLabel(item.expected_back_at)}</span>
-            {!ownerView && owner && (
-              <>
-                {' · '}
-                <Link href={`/messages/${owner.id}`} className="font-medium underline">
-                  Message {owner.first_name}
-                </Link>
-              </>
-            )}
           </div>
-        </div>
-      )}
+        )}
+      </header>
 
-      {/* DESCRIPTION */}
-      <div className="mx-5 mb-4 grid grid-cols-[auto_1fr] gap-4 items-start">
-        <div className="font-mono text-[10px] uppercase tracking-wider opacity-70 pt-1">
-          About
-        </div>
-        <p className="whitespace-pre-wrap leading-relaxed">{item.description}</p>
-      </div>
-
-      {/* QUIRKS */}
-      {quirkEntries.length > 0 && (
-        <div className="mx-5 mb-5 border-t-2 border-dashed pt-4" style={{ borderColor: palette.accent }}>
-          <div className="font-mono text-[10px] uppercase tracking-wider opacity-70 mb-3">
-            Personality
+      {/* ───────────────────────────────────────────────────────
+          PHOTO GALLERY — horizontal scroll
+          ─────────────────────────────────────────────────────── */}
+      {photos.length > 0 && (
+        <section className="pt-6 pb-2">
+          <div className="px-5">
+            <Mono className="text-ink-soft">§ 01 — Photographs</Mono>
           </div>
-          <ul className="space-y-3">
-            {quirkEntries.map(({ q, value }) => (
-              <li key={q.key} className="flex items-start gap-3">
-                <span className="font-mono text-[10px] uppercase tracking-wider pt-1 opacity-70 shrink-0 w-24">
-                  {q.label}
-                </span>
-                <span className="font-script text-2xl leading-tight" style={{ color: palette.scribble }}>
-                  &ldquo;{value}&rdquo;
-                </span>
-              </li>
+          <div className="flex gap-2.5 overflow-x-auto pt-3 pl-5 pr-5">
+            {photos.map((url, i) => (
+              <div
+                key={i}
+                className="shrink-0 w-[220px] overflow-hidden border border-ink/15"
+                style={{ aspectRatio: '4/5' }}
+              >
+                <Lightbox src={url} className="w-full h-full object-cover" />
+              </div>
             ))}
-          </ul>
-        </div>
-      )}
-
-      {/* MEMBERS / OWNER (skip for owner-view since they ARE the owner) */}
-      {!ownerView && owner && (
-        <div className="mx-5 mb-5 border-t-2 pt-4" style={{ borderColor: palette.accent }}>
-          <div className="font-mono text-[10px] uppercase tracking-wider opacity-70 mb-2">
-            Lender
           </div>
-          <Link href={`/u/${owner.id}`} className="flex items-center gap-3 hover:opacity-80">
-            <Avatar url={owner.photo_url} name={owner.first_name} size={44} />
-            <div className="min-w-0 flex-1">
-              <div className="font-display text-xl">{owner.first_name}</div>
-              <div className="text-xs opacity-70">{owner.suburb}</div>
-            </div>
-            <div className="text-right">
-              <Stars value={Number(owner.reputation_score)} />
-              <div className="text-xs opacity-70 mt-0.5">{Number(owner.reputation_score).toFixed(1)}</div>
-            </div>
-          </Link>
-        </div>
+        </section>
       )}
 
-      {/* BARCODE-Y FOOTER */}
-      <div className="px-5 pb-5 pt-3 border-t-2 mt-2" style={{ borderColor: palette.accent }}>
-        <div className="font-mono text-[10px] uppercase tracking-wider opacity-70 flex items-center justify-between">
-          <span>PARTAZ · {createdLabel}</span>
-          <span>NO REFUNDS — JUST RETURNS</span>
-        </div>
-        <div
-          aria-hidden
-          className="mt-2 h-7 bg-repeat-x"
-          style={{
-            backgroundImage:
-              `repeating-linear-gradient(90deg, ${palette.ink} 0 1px, transparent 1px 3px, ${palette.ink} 3px 5px, transparent 5px 9px, ${palette.ink} 9px 11px, transparent 11px 14px)`
-          }}
-        />
-        <div className="font-mono text-[10px] tracking-[0.4em] mt-1 opacity-80">{shortId}</div>
-      </div>
+      {/* ───────────────────────────────────────────────────────
+          DESCRIPTION
+          ─────────────────────────────────────────────────────── */}
+      {item.description && (
+        <section className="px-5 pt-7">
+          <Mono className="text-ink-soft block">§ 02 — The object</Mono>
+          <p
+            className="font-display font-medium text-[18px] leading-[1.45] text-ink mt-3 whitespace-pre-wrap"
+            style={{ textWrap: 'pretty' as never }}
+          >
+            {item.description}
+          </p>
+        </section>
+      )}
+
+      {/* ───────────────────────────────────────────────────────
+          QUIRKS — Flourish blocks
+          ─────────────────────────────────────────────────────── */}
+      {quirkEntries.length > 0 && (
+        <section className="px-5 pt-7">
+          <Mono className="text-ink-soft block">§ 03 — Quirks</Mono>
+          <div className="mt-4 flex flex-col gap-5">
+            {quirkEntries.map(q => (
+              <Flourish key={q.key} kicker={q.label} body={q.value!} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ───────────────────────────────────────────────────────
+          OWNER CARD — public view only
+          ─────────────────────────────────────────────────────── */}
+      {!ownerView && owner && (
+        <section className="px-5 pt-7">
+          <Mono className="text-ink-soft block">§ 04 — Kept by</Mono>
+          <Link
+            href={`/u/${owner.id}`}
+            className="mt-3.5 grid grid-cols-[60px_1fr_auto] gap-3.5 items-center border-t-[1.5px] border-b-[1.5px] border-ink py-3.5 hover:bg-paper-soft transition"
+          >
+            <Avatar url={owner.photo_url} name={owner.first_name} size={60} />
+            <div className="min-w-0">
+              <div className="font-display font-bold text-[22px] leading-none tracking-[-0.01em] text-ink truncate">
+                {owner.first_name}
+              </div>
+              <Mono className="text-ink-soft mt-2 block">
+                · {owner.suburb?.toUpperCase()} · KARMA {owner.karma_points ?? 0}
+              </Mono>
+            </div>
+            <span aria-hidden className="font-display font-bold text-2xl text-ink-soft">↗</span>
+          </Link>
+        </section>
+      )}
+
+      {/* ───────────────────────────────────────────────────────
+          PRIVATE LISTING NOTICE — owner view only
+          ─────────────────────────────────────────────────────── */}
+      {ownerView && item.visibility === 'private' && (
+        <section className="px-5 pt-7">
+          <div className="border border-ink/30 p-3.5 flex items-start gap-3">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16130D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0" aria-hidden>
+              <rect x="4" y="11" width="16" height="10" rx="2" />
+              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+            </svg>
+            <div className="text-sm text-ink-soft">
+              <strong className="text-ink">Private listing.</strong>{' '}
+              Only you (and the current borrower, if any) can see this. It won&apos;t appear in search or on your public profile.
+            </div>
+          </div>
+        </section>
+      )}
     </article>
   );
 }
 
-function Pill({ children, palette }: { children: React.ReactNode; palette: { pill: string; ink: string } }) {
+// ─────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────
+
+function splitTitle(title: string): { first: string; rest: string } {
+  const trimmed = title.trim();
+  const idx = trimmed.indexOf(' ');
+  if (idx < 0) return { first: trimmed, rest: '' };
+  return { first: trimmed.slice(0, idx), rest: trimmed.slice(idx + 1) };
+}
+
+function firstQuirk(quirks: Quirks | null | undefined): string | null {
+  if (!quirks) return null;
+  const order: (keyof Quirks)[] = ['habits', 'cravings', 'origin', 'gifted_by'];
+  for (const k of order) {
+    const v = quirks[k];
+    if (v && v.trim().length > 0) return v.trim();
+  }
+  return null;
+}
+
+/**
+ * Editorial 3-digit "issue number" derived deterministically from the
+ * item's UUID. Stable for the life of the item, no DB column needed.
+ * Collisions are possible (≈1 in 999) but it's a visual flourish, not
+ * a primary key — the real id is in the URL.
+ */
+function numberFromId(id: string): string {
+  const hex = id.replace(/-/g, '').slice(0, 6);
+  const n = parseInt(hex, 16) % 999;
+  return n.toString().padStart(3, '0');
+}
+
+function Flourish({ kicker, body }: { kicker: string; body: string }) {
   return (
-    <span
-      className="font-mono text-[10px] uppercase tracking-wider px-2 py-1 rounded-full"
-      style={{ background: palette.pill, color: palette.ink }}
-    >
-      {children}
-    </span>
+    <div className="border-t border-dashed border-ink/30 pt-3">
+      <div className="font-italic italic text-ink text-[22px] leading-none mb-2">
+        {kicker.toLowerCase()}.
+      </div>
+      <p
+        className="font-display font-medium text-[15px] leading-[1.5] text-ink-soft m-0"
+        style={{ textWrap: 'pretty' as never }}
+      >
+        {body}
+      </p>
+    </div>
   );
 }
