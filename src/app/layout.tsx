@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Bricolage_Grotesque, Instrument_Serif, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+import { RecoveryRedirector } from '@/components/RecoveryRedirector';
 
 const display = Bricolage_Grotesque({
   subsets: ['latin'],
@@ -54,6 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${display.variable} ${italic.variable} ${mono.variable}`}>
       <body className="min-h-screen bg-paper text-ink">
+        <RecoveryRedirector />
         {children}
       </body>
     </html>
