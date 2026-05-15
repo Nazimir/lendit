@@ -21,9 +21,9 @@ export function Spinner({ size = 16, className = '' }: { size?: number; classNam
 
 export function ProgressBanner({ message }: { message: string }) {
   return (
-    <div className="card p-3 flex items-center gap-3 bg-accent-50 border-accent-200">
-      <Spinner size={18} className="text-accent-600" />
-      <span className="text-sm text-accent-800">{message}</span>
+    <div className="bg-cat-kitchen border-[1.5px] border-ink rounded-md p-3 flex items-center gap-3">
+      <Spinner size={18} className="text-ink" />
+      <span className="text-sm font-medium text-ink">{message}</span>
     </div>
   );
 }
