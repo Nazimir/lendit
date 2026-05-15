@@ -18,14 +18,45 @@ export default function ResetPasswordPage() {
   const [done, setDone] = useState(false);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // If the URL hash carries an access token, a recovery is in flight
+    // and we should give Supabase time to exchange it before declaring
+    // the link dead. Without this, getSession() can resolve with null
+    // a beat before the PASSWORD_RECOVERY event fires and flip us into
+    // the "Link invalid" state prematurely.
+    const hashHasToken = window.location.hash.includes('access_token=');
     const sb = createClient();
+    let resolved = false;
+
+    const accept = () => {
+      if (resolved) return;
+      resolved = true;
+      setHasSession(true);
+    };
+    const reject = () => {
+      if (resolved) return;
+      resolved = true;
+      setHasSession(false);
+    };
+
     sb.auth.getSession().then(({ data: { session } }) => {
-      setHasSession(!!session);
+      if (session) accept();
+      else if (!hashHasToken) reject();
+      // else: hash has a token, wait for the auth event
     });
+
     const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
-      setHasSession(!!session);
+      if (session) accept();
     });
-    return () => subscription.unsubscribe();
+
+    // Safety net: if we're still waiting after 6s, give up.
+    const t = setTimeout(reject, 6000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(t);
+    };
   }, []);
 
   async function onSubmit(e: React.FormEvent) {
