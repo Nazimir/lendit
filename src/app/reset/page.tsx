@@ -17,47 +17,50 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
+  // Capture the recovery tokens from the URL hash *synchronously* on
+  // first render, before anything else (Supabase auto-detection, other
+  // createClient calls, etc.) has a chance to consume the hash.
+  //
+  // useState initialisers run before useEffects, so this guarantees we
+  // see the hash even if Supabase JS is already initialising elsewhere
+  // in the tree.
+  const [pendingTokens] = useState<{ access_token: string; refresh_token: string } | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const hash = window.location.hash.slice(1);
+    if (!hash) return null;
+    const params = new URLSearchParams(hash);
+    const at = params.get('access_token');
+    const rt = params.get('refresh_token');
+    if (!at || !rt) return null;
+    // Clear the hash so it doesn't linger in the address bar.
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    return { access_token: at, refresh_token: rt };
+  });
+
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    // If the URL hash carries an access token, a recovery is in flight
-    // and we should give Supabase time to exchange it before declaring
-    // the link dead. Without this, getSession() can resolve with null
-    // a beat before the PASSWORD_RECOVERY event fires and flip us into
-    // the "Link invalid" state prematurely.
-    const hashHasToken = window.location.hash.includes('access_token=');
     const sb = createClient();
-    let resolved = false;
 
-    const accept = () => {
-      if (resolved) return;
-      resolved = true;
-      setHasSession(true);
-    };
-    const reject = () => {
-      if (resolved) return;
-      resolved = true;
-      setHasSession(false);
-    };
+    if (pendingTokens) {
+      // Explicitly install the session from the recovery tokens.
+      // Bypasses Supabase's auto-detection (which is unreliable when
+      // multiple clients are racing on the same hash).
+      sb.auth.setSession(pendingTokens).then(({ data, error }) => {
+        if (error || !data.session) {
+          setHasSession(false);
+          return;
+        }
+        setHasSession(true);
+      });
+      return;
+    }
 
+    // No tokens in URL — maybe the user is already signed in (came
+    // here from /profile or similar). Honour an existing session;
+    // otherwise treat as an invalid landing.
     sb.auth.getSession().then(({ data: { session } }) => {
-      if (session) accept();
-      else if (!hashHasToken) reject();
-      // else: hash has a token, wait for the auth event
+      setHasSession(!!session);
     });
-
-    const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
-      if (session) accept();
-    });
-
-    // Safety net: if we're still waiting after 6s, give up.
-    const t = setTimeout(reject, 6000);
-
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(t);
-    };
-  }, []);
+  }, [pendingTokens]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
