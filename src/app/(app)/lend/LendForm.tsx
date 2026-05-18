@@ -12,7 +12,7 @@ import { normalizeImage } from '@/lib/imageUpload';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { createLending } from './actions';
 
-type Phase = 'form' | 'invite';
+type Phase = 'form' | 'invite' | 'pending_acceptance';
 
 export function LendForm() {
   return (
@@ -49,6 +49,7 @@ function LendInner() {
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inviteUrl, setInviteUrl] = useState('');
+  const [pendingRecipientName, setPendingRecipientName] = useState('');
 
   useEffect(() => {
     if (!itemParam) return;
@@ -76,7 +77,7 @@ function LendInner() {
 
     if (existingItem) {
       setBusy(true);
-      setProgress('Setting up the loan…');
+      setProgress('Sending the request…');
       const result = await createLending({
         existing_item_id: existingItem.id,
         loan_period_days: numDays,
@@ -85,9 +86,9 @@ function LendInner() {
       });
       setBusy(false); setProgress(null);
       if ('error' in result) { setError(result.error); return; }
-      if (result.mode === 'direct') {
-        router.replace(`/loans/${result.loan_id}`);
-        router.refresh();
+      if (result.mode === 'pending_acceptance') {
+        setPendingRecipientName(result.recipient_first_name || recipientHint || 'them');
+        setPhase('pending_acceptance');
       } else {
         setInviteUrl(`${window.location.origin}${result.invite_url}`);
         setPhase('invite');
@@ -122,7 +123,7 @@ function LendInner() {
       urls.push(pub.publicUrl);
     }
 
-    setProgress('Setting up the loan…');
+    setProgress('Sending the request…');
     const result = await createLending({
       title: title.trim(),
       description: description.trim(),
@@ -135,9 +136,9 @@ function LendInner() {
 
     setBusy(false); setProgress(null);
     if ('error' in result) { setError(result.error); return; }
-    if (result.mode === 'direct') {
-      router.replace(`/loans/${result.loan_id}`);
-      router.refresh();
+    if (result.mode === 'pending_acceptance') {
+      setPendingRecipientName(result.recipient_first_name || recipientHint || 'them');
+      setPhase('pending_acceptance');
     } else {
       setInviteUrl(`${window.location.origin}${result.invite_url}`);
       setPhase('invite');
@@ -146,6 +147,10 @@ function LendInner() {
 
   if (phase === 'invite') {
     return <InviteShare url={inviteUrl} hint={recipientHint || recipientEmail} />;
+  }
+
+  if (phase === 'pending_acceptance') {
+    return <PendingAcceptance recipientName={pendingRecipientName} />;
   }
 
   if (loadingItem) {
@@ -323,7 +328,7 @@ function LendInner() {
                 placeholder="sam@example.com"
               />
               <Mono className="text-ink-soft mt-2 block leading-relaxed">
-                If they already have a Partaz account on this email, the loan goes straight into their app. Otherwise we&apos;ll generate an invite link for you to share.
+                If they already have a Partaz account on this email, they&apos;ll see a confirmation prompt in their app — the loan starts once they accept. Otherwise we&apos;ll give you an invite link to share.
               </Mono>
             </div>
           </section>
@@ -383,6 +388,60 @@ function ExistingItemStrip({ item }: { item: Item }) {
         </div>
       </div>
     </section>
+  );
+}
+
+function PendingAcceptance({ recipientName }: { recipientName: string }) {
+  return (
+    <main className="min-h-screen bg-paper px-6 py-10 flex flex-col">
+      <div className="w-full max-w-2xl mx-auto">
+        <div className="flex justify-between items-center mb-10">
+          <Wordmark size={22} />
+          <div className="flex items-center gap-3">
+            <Link href="/listings" className="text-ink-soft hover:text-ink">
+              <Mono>← Shelf</Mono>
+            </Link>
+            <Mono className="text-ink-soft">Hand-off</Mono>
+          </div>
+        </div>
+
+        <div>
+          <h1 className="font-display font-extrabold text-[56px] leading-[0.88] tracking-[-0.045em] text-ink text-balance">
+            Waiting on <Italic>{recipientName}</Italic>.
+          </h1>
+          <p className="font-display font-medium text-[16px] leading-[1.4] text-ink-soft mt-4 text-pretty">
+            We&apos;ve put this loan in front of {recipientName}. The clock starts when they tap Accept in their app.
+          </p>
+        </div>
+
+        <div className="mt-10 bg-cat-kitchen border-[1.5px] border-ink rounded-md p-5">
+          <Mono className="text-ink/70 block mb-1">Why this step</Mono>
+          <h3 className="font-display font-bold text-[18px] leading-tight tracking-[-0.015em] text-ink">
+            Both sides <Italic>confirm</Italic> — that&apos;s the deal.
+          </h3>
+          <p className="text-sm text-ink/80 mt-2 leading-snug">
+            We don&apos;t let anyone create a loan against your name without you saying yes. Same protection works the other way: {recipientName} won&apos;t appear as your borrower until they actually agree.
+          </p>
+        </div>
+
+        <div className="mt-8">
+          <Mono className="text-ink-soft block mb-3">What happens next</Mono>
+          <ul className="text-sm text-ink leading-relaxed space-y-2">
+            <li>· You&apos;ll see this request under <strong className="font-bold">Waiting on them</strong> in your loans.</li>
+            <li>· You can <strong className="font-bold">nudge</strong> them or <strong className="font-bold">cancel</strong> from there.</li>
+            <li>· If they don&apos;t respond in 48 hours, the request expires automatically.</li>
+          </ul>
+        </div>
+
+        <Link
+          href="/loans"
+          className="btn-primary w-full mt-10 flex justify-between items-center"
+        >
+          <span>See your <Italic>loans</Italic></span>
+          <span aria-hidden>→</span>
+        </Link>
+      </div>
+    </main>
   );
 }
 

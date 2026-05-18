@@ -17,7 +17,7 @@ interface LendPayload {
 }
 
 export async function createLending(payload: LendPayload): Promise<
-  | { ok: true; mode: 'direct'; loan_id: string }
+  | { ok: true; mode: 'pending_acceptance'; request_id: string; recipient_first_name: string }
   | { ok: true; mode: 'invite'; invite_url: string; token: string }
   | { error: string }
 > {
@@ -57,7 +57,10 @@ export async function createLending(payload: LendPayload): Promise<
         photos: payload.photo_urls,
         max_loan_days: payload.loan_period_days,
         extensions_allowed: true,
-        is_available: false,
+        // Keep the item available until the borrower accepts. The
+        // on_request_accepted trigger will atomically flip is_available
+        // to false when the loan is created.
+        is_available: true,
         // Lend-in-person items are private by default — they're personal
         // trackers for items the owner hand-delivered, not catalogue listings.
         // The owner can flip them to public later from the listing page.
@@ -82,36 +85,44 @@ export async function createLending(payload: LendPayload): Promise<
   }
 
   if (recipientId && recipientId !== user.id) {
-    // 3a. Direct path — create a borrow request that's already accepted, which
-    // triggers loan creation via the on_request_accepted trigger.
+    // 3a. Direct path — pre-fill a borrow request from the recipient's
+    // perspective. The recipient must Accept it from their /loans page
+    // before a loan is actually created.
+    //
+    // This closes a trust hole: previously the lender could auto-accept
+    // their own pre-filled request, fabricating loans against another
+    // user's account. Now both sides confirm.
+    const recipientFirstName = await supabase
+      .from('profiles')
+      .select('first_name')
+      .eq('id', recipientId)
+      .maybeSingle()
+      .then(r => (r.data?.first_name as string) || 'them');
+
     const { data: req, error: reqErr } = await supabase
       .from('borrow_requests')
       .insert({
         item_id: itemId,
         borrower_id: recipientId,
         lender_id: user.id,
-        message: `Lent in person — ${payload.loan_period_days}-day loan.`,
-        status: 'pending'
+        message: payload.loan_period_days
+          ? `In-person loan — ${payload.loan_period_days} days.`
+          : `In-person loan — open-ended.`,
+        status: 'pending',
+        initiated_by: 'lender'
       })
       .select('id')
       .single();
     if (reqErr || !req) return { error: 'Could not start the loan: ' + (reqErr?.message || 'unknown') };
 
-    const { error: acceptErr } = await supabase
-      .from('borrow_requests')
-      .update({ status: 'accepted' })
-      .eq('id', req.id);
-    if (acceptErr) return { error: 'Could not accept the loan: ' + acceptErr.message };
-
-    const { data: createdLoan } = await supabase
-      .from('loans')
-      .select('id')
-      .eq('request_id', req.id)
-      .maybeSingle();
-
     revalidatePath('/listings');
     revalidatePath('/loans');
-    return { ok: true, mode: 'direct', loan_id: (createdLoan?.id as string) || '' };
+    return {
+      ok: true,
+      mode: 'pending_acceptance',
+      request_id: req.id as string,
+      recipient_first_name: recipientFirstName
+    };
   }
 
   // 3b. Invite path — generate a token and stash a pending invite.
@@ -204,4 +215,145 @@ function randomToken(): string {
   let out = '';
   for (let i = 0; i < 12; i++) out += chars[Math.floor(Math.random() * chars.length)];
   return out;
+}
+
+// =====================================================================
+// In-person request lifecycle (post-trust-fix)
+//
+// Once a lender pre-fills a borrow_request via createLending, the
+// borrower must call acceptInPersonRequest or declineInPersonRequest
+// from their /loans page. The lender can cancel or nudge while pending.
+// =====================================================================
+
+export async function acceptInPersonRequest(requestId: string): Promise<
+  | { ok: true; loan_id: string }
+  | { error: string }
+> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not signed in.' };
+
+  // Verify the request exists, is pending, was lender-initiated, and
+  // the caller is the named borrower. RLS already restricts read/update
+  // to participants, but we check explicitly for clearer error messages.
+  const { data: req } = await supabase
+    .from('borrow_requests')
+    .select('id, status, initiated_by, borrower_id, expires_at')
+    .eq('id', requestId)
+    .maybeSingle();
+  if (!req) return { error: 'Request not found.' };
+  if (req.borrower_id !== user.id) return { error: 'Only the named borrower can accept this.' };
+  if (req.initiated_by !== 'lender') return { error: "That isn't an in-person loan request." };
+  if (req.status !== 'pending') return { error: `This request is already ${req.status}.` };
+  if (new Date(req.expires_at).getTime() < Date.now()) {
+    return { error: 'This request has expired. Ask the lender to resend.' };
+  }
+
+  // Flip to accepted. The on_request_accepted trigger creates the loan
+  // in pending_handover and atomically claims the item.
+  const { error: upErr } = await supabase
+    .from('borrow_requests')
+    .update({ status: 'accepted' })
+    .eq('id', requestId);
+  if (upErr) return { error: 'Could not accept: ' + upErr.message };
+
+  const { data: loan } = await supabase
+    .from('loans')
+    .select('id')
+    .eq('request_id', requestId)
+    .maybeSingle();
+
+  revalidatePath('/loans');
+  return { ok: true, loan_id: (loan?.id as string) || '' };
+}
+
+export async function declineInPersonRequest(requestId: string): Promise<
+  { ok: true } | { error: string }
+> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not signed in.' };
+
+  const { data: req } = await supabase
+    .from('borrow_requests')
+    .select('id, status, initiated_by, borrower_id')
+    .eq('id', requestId)
+    .maybeSingle();
+  if (!req) return { error: 'Request not found.' };
+  if (req.borrower_id !== user.id) return { error: 'Only the named borrower can decline this.' };
+  if (req.initiated_by !== 'lender') return { error: "That isn't an in-person loan request." };
+  if (req.status !== 'pending') return { error: `This request is already ${req.status}.` };
+
+  const { error: upErr } = await supabase
+    .from('borrow_requests')
+    .update({ status: 'declined' })
+    .eq('id', requestId);
+  if (upErr) return { error: 'Could not decline: ' + upErr.message };
+
+  revalidatePath('/loans');
+  return { ok: true };
+}
+
+export async function cancelInPersonRequest(requestId: string): Promise<
+  { ok: true } | { error: string }
+> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not signed in.' };
+
+  const { data: req } = await supabase
+    .from('borrow_requests')
+    .select('id, status, initiated_by, lender_id')
+    .eq('id', requestId)
+    .maybeSingle();
+  if (!req) return { error: 'Request not found.' };
+  if (req.lender_id !== user.id) return { error: 'Only the lender can cancel this.' };
+  if (req.initiated_by !== 'lender') return { error: "That isn't an in-person loan request." };
+  if (req.status !== 'pending') return { error: `This request is already ${req.status}.` };
+
+  const { error: upErr } = await supabase
+    .from('borrow_requests')
+    .update({ status: 'cancelled' })
+    .eq('id', requestId);
+  if (upErr) return { error: 'Could not cancel: ' + upErr.message };
+
+  revalidatePath('/loans');
+  return { ok: true };
+}
+
+/**
+ * Resend a nudge to the recipient. Right now this is in-app only — it
+ * bumps `updated_at` so the row sorts to the top and shows as "Nudged
+ * just now". Once SMTP (Resend) is wired up, this is the hook that
+ * fires the reminder email; once push notifications exist, this is
+ * where we'd enqueue a push.
+ */
+export async function nudgeInPersonRequest(requestId: string): Promise<
+  { ok: true } | { error: string }
+> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Not signed in.' };
+
+  const { data: req } = await supabase
+    .from('borrow_requests')
+    .select('id, status, initiated_by, lender_id')
+    .eq('id', requestId)
+    .maybeSingle();
+  if (!req) return { error: 'Request not found.' };
+  if (req.lender_id !== user.id) return { error: 'Only the lender can nudge.' };
+  if (req.initiated_by !== 'lender') return { error: "That isn't an in-person loan request." };
+  if (req.status !== 'pending') return { error: `This request is already ${req.status}.` };
+
+  const { error: upErr } = await supabase
+    .from('borrow_requests')
+    .update({ updated_at: new Date().toISOString() })
+    .eq('id', requestId);
+  if (upErr) return { error: 'Could not nudge: ' + upErr.message };
+
+  // TODO: send transactional email once Resend SMTP is configured.
+  // TODO: enqueue a push notification once we have a push service.
+
+  revalidatePath('/loans');
+  return { ok: true };
 }

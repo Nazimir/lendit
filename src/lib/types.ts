@@ -161,6 +161,10 @@ export interface BorrowRequest {
   status: RequestStatus;
   expires_at: string;
   chain_after_loan_id: string | null;
+  /** 'borrower' for the standard "I want to borrow this" flow,
+      'lender' for the in-person flow where the lender pre-fills a
+      request that the borrower must Accept or Decline. */
+  initiated_by: 'borrower' | 'lender';
   created_at: string;
   updated_at: string;
 }

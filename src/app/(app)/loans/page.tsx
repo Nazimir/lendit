@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { Mono, Italic } from '@/components/typography';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { territoryForUser } from '@/lib/personalTerritory';
-import type { Loan, Item, Profile } from '@/lib/types';
+import { InPersonInbox } from './InPersonInbox';
+import type { Loan, Item, Profile, BorrowRequest } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,16 +13,32 @@ export default async function LoansPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: loans } = await supabase
-    .from('loans').select('*')
-    .or(`borrower_id.eq.${user.id},lender_id.eq.${user.id}`)
-    .order('created_at', { ascending: false });
+  const [{ data: loans }, { data: pendingReqsRaw }] = await Promise.all([
+    supabase
+      .from('loans').select('*')
+      .or(`borrower_id.eq.${user.id},lender_id.eq.${user.id}`)
+      .order('created_at', { ascending: false }),
+    // In-person requests awaiting acceptance / nudge / cancel.
+    supabase
+      .from('borrow_requests')
+      .select('*')
+      .eq('status', 'pending')
+      .eq('initiated_by', 'lender')
+      .or(`borrower_id.eq.${user.id},lender_id.eq.${user.id}`)
+      .order('updated_at', { ascending: false })
+  ]);
 
   const list = (loans || []) as Loan[];
-  const itemIds = Array.from(new Set(list.map(l => l.item_id)));
-  const counterpartyIds = Array.from(new Set(
-    list.map(l => l.lender_id === user.id ? l.borrower_id : l.lender_id)
-  ));
+  const pendingReqs = (pendingReqsRaw || []) as BorrowRequest[];
+
+  const itemIds = Array.from(new Set([
+    ...list.map(l => l.item_id),
+    ...pendingReqs.map(r => r.item_id)
+  ]));
+  const counterpartyIds = Array.from(new Set([
+    ...list.map(l => l.lender_id === user.id ? l.borrower_id : l.lender_id),
+    ...pendingReqs.map(r => r.lender_id === user.id ? r.borrower_id : r.lender_id)
+  ]));
 
   const [{ data: itemsRaw }, { data: profilesRaw }] = await Promise.all([
     itemIds.length
@@ -63,14 +80,23 @@ export default async function LoansPage() {
         </p>
       </header>
 
-      {list.length === 0 ? (
+      {pendingReqs.length > 0 && (
+        <InPersonInbox
+          requests={pendingReqs}
+          items={items}
+          profileById={Object.fromEntries(profileById)}
+          userId={user.id}
+        />
+      )}
+
+      {list.length === 0 && pendingReqs.length === 0 ? (
         <section className="px-5 py-12 text-center">
           <p className="font-italic italic text-[18px] text-ink-soft">
             No loans yet. Browse the feed to borrow something — or list yours so neighbours can ask.
           </p>
           <Link href="/home" className="btn-primary inline-flex mt-6">Open the feed</Link>
         </section>
-      ) : (
+      ) : list.length === 0 ? null : (
         <>
           {disputed.length > 0 && (
             <LedgerGroup
