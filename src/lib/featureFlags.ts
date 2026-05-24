@@ -6,11 +6,12 @@
 /**
  * Require phone verification before users can borrow / lend / message.
  *
- * Currently OFF because the SMS provider (Twilio + Africa's Talking)
- * doesn't reliably deliver to Mauritius. When that's resolved, flip
- * this to true and the VerifyGate UI will reappear on gated pages.
+ * Re-enabled 24 May 2026: Twilio Verify is live and SMS-to-MU
+ * delivery confirmed via smoke test. The VerifyGate UI is now
+ * active on /lend, /listings/new, /items/[id], etc.
  *
- * Note: the verified badge mechanic still works for users who DID
- * verify previously — they keep their green check.
+ * If we ever need to bypass again (e.g., SMS outage, budget burnout,
+ * carrier issue), flip this back to false — no other code needs to
+ * change. The verified-badge mechanic respects the gate either way.
  */
-export const REQUIRE_PHONE_VERIFICATION = false;
+export const REQUIRE_PHONE_VERIFICATION = true;
