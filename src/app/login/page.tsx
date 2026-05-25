@@ -22,7 +22,18 @@ function LoginInner() {
     setBusy(true); setError(null);
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { setError(error.message); setBusy(false); return; }
+    if (error) {
+      // If the user signed up but never confirmed, send them straight to
+      // the OTP entry page instead of letting them stew on a generic error.
+      // Supabase phrases this either "Email not confirmed" or
+      // "email_not_confirmed" depending on version.
+      const msg = error.message.toLowerCase();
+      if (msg.includes('not confirmed') || msg.includes('email_not_confirmed')) {
+        router.push(`/confirm-email?email=${encodeURIComponent(email)}`);
+        return;
+      }
+      setError(error.message); setBusy(false); return;
+    }
     router.replace(next);
     router.refresh();
   }

@@ -76,9 +76,10 @@ export default function SignupPage() {
       router.replace('/home');
       router.refresh();
     } else {
-      setInfo("Check your email for a confirmation link, then sign in.");
-      setBusy(false);
-      setProgress(null);
+      // Email confirmation required. Hand the user to the OTP entry page
+      // rather than a dead-end "check your email" message — codes don't
+      // suffer the cross-browser / link-expiration trap that magic links do.
+      router.replace(`/confirm-email?email=${encodeURIComponent(email)}`);
     }
   }
 
