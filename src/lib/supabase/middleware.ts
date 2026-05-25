@@ -36,6 +36,7 @@ export async function updateSession(request: NextRequest) {
     path.startsWith('/signup') ||
     path.startsWith('/forgot') ||
     path.startsWith('/reset') ||
+    path.startsWith('/confirm-email') ||
     path.startsWith('/auth') ||
     path.startsWith('/invite') ||
     path.startsWith('/terms') ||
