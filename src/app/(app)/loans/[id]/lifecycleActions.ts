@@ -25,10 +25,11 @@ export async function cancelPendingHandover(loanId: string): Promise<{ ok: true 
   }).eq('id', loanId);
   if (error) return { error: error.message };
 
-  // Drop a chat note so the borrower knows.
+  // Drop a chat note so the borrower knows. Lifecycle actions only run on
+  // two-sided loans — manual loans use the simpler ManualLoanDetail flow.
   await sb.from('messages').insert({
     sender_id: user.id,
-    recipient_id: loan.borrower_id,
+    recipient_id: loan.borrower_id!,
     body: "I've cancelled this loan because the handover didn't happen. The item is back in my catalogue.",
     context_item_id: loan.item_id
   });
@@ -77,8 +78,8 @@ export async function openDispute(loanId: string, reason: string): Promise<{ ok:
   }).eq('id', loanId);
   if (lErr) return { error: lErr.message };
 
-  // 3. Post a chat message for visibility
-  const otherId = loan.lender_id === user.id ? loan.borrower_id : loan.lender_id;
+  // 3. Post a chat message for visibility. Disputes only exist on two-sided loans.
+  const otherId: string = loan.lender_id === user.id ? loan.borrower_id! : loan.lender_id;
   await sb.from('messages').insert({
     sender_id: user.id,
     recipient_id: otherId,

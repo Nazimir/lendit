@@ -38,7 +38,7 @@ export default async function LoansPage() {
   const counterpartyIds = Array.from(new Set([
     ...list.map(l => l.lender_id === user.id ? l.borrower_id : l.lender_id),
     ...pendingReqs.map(r => r.lender_id === user.id ? r.borrower_id : r.lender_id)
-  ]));
+  ].filter((id): id is string => id !== null)));
 
   const [{ data: itemsRaw }, { data: profilesRaw }] = await Promise.all([
     itemIds.length
@@ -89,12 +89,31 @@ export default async function LoansPage() {
         />
       )}
 
+      {/* Always-visible "Log a loan" CTA — primary cornerstone action. */}
+      <section className="px-5 pt-5">
+        <Link
+          href="/loans/new"
+          className="block border-[1.5px] border-ink p-4 hover:bg-paper-soft transition-colors"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="font-display font-extrabold text-[20px] tracking-[-0.02em] text-ink leading-tight">
+                Log a <Italic>loan</Italic>.
+              </div>
+              <div className="mt-1 font-display font-medium text-[13px] text-ink-soft">
+                Already lent something? Add it to your ledger — no app needed on their side.
+              </div>
+            </div>
+            <span aria-hidden className="font-display text-[24px] text-ink shrink-0">+</span>
+          </div>
+        </Link>
+      </section>
+
       {list.length === 0 && pendingReqs.length === 0 ? (
         <section className="px-5 py-12 text-center">
           <p className="font-italic italic text-[18px] text-ink-soft">
-            No loans yet. Browse the feed to borrow something — or list yours so neighbours can ask.
+            Nothing in circulation yet. Log a loan you&apos;ve already made — or browse the feed to borrow something.
           </p>
-          <Link href="/home" className="btn-primary inline-flex mt-6">Open the feed</Link>
         </section>
       ) : list.length === 0 ? null : (
         <>
@@ -181,15 +200,24 @@ function LedgerGroup({
         <Mono className="text-ink-soft">{count} · {subtitle.toUpperCase()}</Mono>
       </div>
       <ul className="flex flex-col">
-        {loans.map(l => (
-          <LedgerRow
-            key={l.id}
-            loan={l}
-            item={items.find(i => i.id === l.item_id)}
-            counterpartyName={profileById.get(l.lender_id === userId ? l.borrower_id : l.lender_id)?.first_name || 'someone'}
-            userId={userId}
-          />
-        ))}
+        {loans.map(l => {
+          const isLender = l.lender_id === userId;
+          // For manual loans (no borrower account), fall back to the
+          // free-text name the lender originally typed.
+          const counterpartyId = isLender ? l.borrower_id : l.lender_id;
+          const counterpartyName = counterpartyId
+            ? (profileById.get(counterpartyId)?.first_name || 'someone')
+            : (l.borrower_name_freetext || 'someone');
+          return (
+            <LedgerRow
+              key={l.id}
+              loan={l}
+              item={items.find(i => i.id === l.item_id)}
+              counterpartyName={counterpartyName}
+              userId={userId}
+            />
+          );
+        })}
       </ul>
     </section>
   );
@@ -204,13 +232,17 @@ function LedgerRow({
   counterpartyName: string;
 }) {
   const isLender = loan.lender_id === userId;
+  const isManual = loan.borrower_id === null;
   // Strip colour comes from the COUNTERPARTY'S personal territory, not from
   // the item's category. Two benefits:
   //   1. Consecutive items with the same category no longer look identical
   //      in the ledger — variety comes from the people, not the things.
   //   2. You start to recognise neighbours by colour over time.
+  // For manual loans (no borrower account), seed from the loan id so each
+  // manual borrower still gets a stable, distinctive strip.
   const counterpartyId = isLender ? loan.borrower_id : loan.lender_id;
-  const stripPalette = paletteForCategory(territoryForUser(counterpartyId));
+  const paletteSeed = counterpartyId ?? loan.id;
+  const stripPalette = paletteForCategory(territoryForUser(paletteSeed));
   const stateLabel = stateText(loan);
   const isOverdue = loan.due_at && loan.status === 'active' && new Date(loan.due_at).getTime() < Date.now();
   const isDisputed = loan.status === 'disputed';
@@ -232,6 +264,11 @@ function LedgerRow({
           </div>
           <div className="mt-0.5 font-display font-medium text-[13px] text-ink-soft">
             {isLender ? <>To <strong className="font-bold text-ink">{counterpartyName}</strong></> : <>From <strong className="font-bold text-ink">{counterpartyName}</strong></>}
+            {isManual && (
+              <span className="ml-2 font-mono uppercase tracking-mono text-[9px] text-ink-soft border border-ink/20 px-1 py-px">
+                manual
+              </span>
+            )}
             {' · '}
             <span className={isOverdue || isDisputed ? 'text-cat-tools font-mono uppercase tracking-mono text-[10px]' : 'font-mono uppercase tracking-mono text-[10px] text-ink-soft'}>
               {stateLabel}

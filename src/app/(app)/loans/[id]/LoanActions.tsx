@@ -89,7 +89,8 @@ export function LoanActions({ loan, isLender }: { loan: Loan; isLender: boolean 
     if (user) {
       await sb.from('messages').insert({
         sender_id: user.id,
-        recipient_id: loan.borrower_id,
+        // LoanActions only renders for two-sided loans (manual ones get ManualLoanDetail).
+        recipient_id: loan.borrower_id!,
         body: 'I need this item back — can we arrange the return as soon as possible?',
         context_item_id: loan.item_id
       });

@@ -13,6 +13,7 @@ import { RetractDisputeButton } from './RetractDisputeButton';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { grainStyle } from '@/lib/grain';
 import { dateLabel, timeAgo } from '@/lib/utils';
+import { ManualLoanDetail } from './ManualLoanDetail';
 import type { Loan, Item, Profile, Review, LoanExtension, BorrowRequest, Dispute, LoanStatus } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -26,8 +27,17 @@ export default async function LoanDetailPage({ params }: { params: { id: string 
   if (!loan) notFound();
   if (![loan.lender_id, loan.borrower_id].includes(user.id)) redirect('/loans');
 
+  // Manual loans (no borrower account) get a dedicated simpler detail view.
+  // Skips disputes, extensions, reviews, chain handoffs, message threads — none apply.
+  if (loan.borrower_id === null) {
+    const { data: item } = await supabase.from('items').select('*').eq('id', loan.item_id).single();
+    return <ManualLoanDetail loan={loan as Loan} item={item as Item | null} />;
+  }
+
   const isLender = loan.lender_id === user.id;
-  const otherId = isLender ? loan.borrower_id : loan.lender_id;
+  // Past the early branch above we're guaranteed a two-sided loan, so
+  // borrower_id is non-null.
+  const otherId: string = isLender ? loan.borrower_id! : loan.lender_id;
 
   const [
     { data: item },

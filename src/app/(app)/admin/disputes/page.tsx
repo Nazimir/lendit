@@ -126,7 +126,8 @@ export default async function AdminDisputesPage({ searchParams }: { searchParams
               const item = loan ? itemById.get(loan.item_id) : null;
               const opener = profileById.get(d.opened_by);
               const lender = loan ? profileById.get(loan.lender_id) : null;
-              const borrower = loan ? profileById.get(loan.borrower_id) : null;
+              // Manual loans can't be disputed (no UI path), so borrower_id is non-null here.
+              const borrower = loan && loan.borrower_id ? profileById.get(loan.borrower_id) : null;
 
               return (
                 <li key={d.id} className="border-t border-ink/15 first:border-t-0 py-6">
@@ -153,7 +154,7 @@ export default async function AdminDisputesPage({ searchParams }: { searchParams
                       />
                       <DetailLine
                         label="Borrower"
-                        link={`/u/${loan.borrower_id}`}
+                        link={loan.borrower_id ? `/u/${loan.borrower_id}` : undefined}
                         value={borrower?.first_name || 'unknown'}
                       />
                       <DetailLine label="Loan started" value={dateLabel(loan.created_at)} />

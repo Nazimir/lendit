@@ -172,7 +172,8 @@ export interface BorrowRequest {
 export interface Loan {
   id: string;
   item_id: string;
-  borrower_id: string;
+  /** Null for manual loans where the borrower has no Partaz account. */
+  borrower_id: string | null;
   lender_id: string;
   request_id: string | null;
   status: LoanStatus;
@@ -186,6 +187,13 @@ export interface Loan {
   extensions_used: number;
   created_at: string;
   updated_at: string;
+  /** Free-text borrower name for manual loans. Preserved even after a claim
+      link assigns borrower_id, as a record of how the lender first identified them. */
+  borrower_name_freetext: string | null;
+  /** Optional phone/email the lender entered (used for sending claim links). */
+  borrower_contact: string | null;
+  /** Optional lender-only notes. */
+  notes: string | null;
 }
 
 export interface Message {

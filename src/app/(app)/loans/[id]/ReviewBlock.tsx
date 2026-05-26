@@ -32,7 +32,8 @@ export function ReviewBlock({ loanId, myReview, otherName }: {
     if (!user) { setError('Not signed in.'); setBusy(false); return; }
     const { data: loan } = await sb.from('loans').select('borrower_id,lender_id').eq('id', loanId).single();
     if (!loan) { setError('Loan not found.'); setBusy(false); return; }
-    const reviewee = user.id === loan.borrower_id ? loan.lender_id : loan.borrower_id;
+    // Reviews only fire for two-sided completed loans, so borrower_id is non-null here.
+    const reviewee = user.id === loan.borrower_id ? loan.lender_id : loan.borrower_id!;
     const { error } = await sb.from('reviews').insert({
       loan_id: loanId, reviewer_id: user.id, reviewee_id: reviewee, stars, comment
     });
