@@ -79,7 +79,7 @@ export async function openDispute(loanId: string, reason: string): Promise<{ ok:
   if (lErr) return { error: lErr.message };
 
   // 3. Post a chat message for visibility. Disputes only exist on two-sided loans.
-  const otherId: string = loan.lender_id === user.id ? loan.borrower_id! : loan.lender_id;
+  const otherId: string = loan.lender_id === user.id ? loan.borrower_id! : loan.lender_id!;
   await sb.from('messages').insert({
     sender_id: user.id,
     recipient_id: otherId,

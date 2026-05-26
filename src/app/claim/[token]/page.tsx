@@ -12,9 +12,15 @@ import { dateLabel } from '@/lib/utils';
 type Summary = {
   status: 'pending' | 'claimed' | 'rejected' | 'expired' | 'cancelled';
   expires_at: string;
-  lender_first_name: string | null;
+  /** 'lender_invites' (lender shared, asking you to confirm you're the borrower)
+   *  | 'borrower_invites' (borrower shared, asking you to confirm you're the lender)
+   *  | 'closed' (both sides already claimed) */
+  direction: 'lender_invites' | 'borrower_invites' | 'closed';
+  /** First name of the user who created the loan (asserter side). */
+  asserter_first_name: string | null;
+  /** Free-text name they used to identify you. */
+  counterparty_hint: string | null;
   item_title: string | null;
-  borrower_name_hint: string | null;
   lent_on: string | null;
   due_on: string | null;
 };
@@ -126,18 +132,27 @@ export default function ClaimPage({ params }: { params: { token: string } }) {
 
         {!loading && !rejected && summary && summary.status === 'pending' && (
           <>
-            {/* Summary card */}
+            {/* Summary card — copy adapts to direction */}
             <h1 className="font-display font-extrabold text-[44px] leading-[0.9] tracking-[-0.04em] text-ink text-balance">
               Is this <Italic>you</Italic>?
             </h1>
             <p className="font-display font-medium text-[16px] leading-[1.4] text-ink-soft mt-4 text-pretty">
-              <span className="text-ink font-bold">{summary.lender_first_name || 'Someone'}</span>
-              {' '}says they lent{' '}
+              <span className="text-ink font-bold">{summary.asserter_first_name || 'Someone'}</span>
+              {' '}says they{' '}
+              {summary.direction === 'lender_invites' ? 'lent ' : 'borrowed '}
               <span className="text-ink font-bold">{summary.item_title || 'something'}</span>
-              {summary.borrower_name_hint && <> to <span className="text-ink font-bold">{summary.borrower_name_hint}</span></>}
+              {' '}
+              {summary.direction === 'lender_invites' ? 'to ' : 'from '}
+              {summary.counterparty_hint && (
+                <span className="text-ink font-bold">{summary.counterparty_hint}</span>
+              )}
+              {!summary.counterparty_hint && <span className="text-ink font-bold">you</span>}
               {summary.lent_on && <> on <span className="text-ink">{dateLabel(summary.lent_on)}</span></>}
               .
-              {summary.due_on && <> Due back <span className="text-ink">{dateLabel(summary.due_on)}</span>.</>}
+              {summary.due_on && (
+                <> {summary.direction === 'lender_invites' ? 'Due back' : 'Need it back by'}{' '}
+                <span className="text-ink">{dateLabel(summary.due_on)}</span>.</>
+              )}
             </p>
 
             <div className="mt-6 p-4 bg-cat-kitchen border border-ink/10">

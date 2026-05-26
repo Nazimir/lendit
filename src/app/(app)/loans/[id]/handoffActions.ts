@@ -59,10 +59,12 @@ export async function passToNextBorrower(args: {
   const due = periodDays ? new Date(Date.now() + periodDays * 86_400_000) : null;
 
   // 4. Create the next loan, already active (the handoff photo IS the handover).
+  // Chain handoffs only happen on two-sided loans — manual loans never reach
+  // this codepath, so lender_id is non-null here.
   const { data: newLoan, error: createErr } = await supabase.from('loans').insert({
     item_id: loan.item_id,
     borrower_id: chainReq.borrower_id,
-    lender_id: loan.lender_id,
+    lender_id: loan.lender_id!,
     request_id: chainReq.id,
     status: 'active',
     loan_period_days: periodDays,
@@ -75,7 +77,7 @@ export async function passToNextBorrower(args: {
   // 5. Notify the owner in chat.
   await supabase.from('messages').insert({
     sender_id: user.id,
-    recipient_id: loan.lender_id,
+    recipient_id: loan.lender_id!,
     body: `Just passed the item to the next borrower — handover photo attached. The new loan is now active.`,
     context_item_id: loan.item_id
   });

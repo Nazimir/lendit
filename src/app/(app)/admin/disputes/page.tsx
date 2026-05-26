@@ -44,11 +44,13 @@ export default async function AdminDisputesPage({ searchParams }: { searchParams
 
   const loans = (loansRaw || []) as Loan[];
   const itemIds = Array.from(new Set(loans.map(l => l.item_id)));
+  // Filter out nulls — disputed loans must be two-sided (manual loans can't be
+  // disputed) but be defensive against future schema changes.
   const partyIds = Array.from(new Set([
     ...loans.map(l => l.lender_id),
     ...loans.map(l => l.borrower_id),
     ...openerIds
-  ]));
+  ].filter((id): id is string => id !== null)));
 
   const [{ data: itemsRaw }, { data: profilesRaw }] = await Promise.all([
     itemIds.length
@@ -125,7 +127,7 @@ export default async function AdminDisputesPage({ searchParams }: { searchParams
               const loan = loanById.get(d.loan_id);
               const item = loan ? itemById.get(loan.item_id) : null;
               const opener = profileById.get(d.opened_by);
-              const lender = loan ? profileById.get(loan.lender_id) : null;
+              const lender = loan && loan.lender_id ? profileById.get(loan.lender_id) : null;
               // Manual loans can't be disputed (no UI path), so borrower_id is non-null here.
               const borrower = loan && loan.borrower_id ? profileById.get(loan.borrower_id) : null;
 
@@ -149,7 +151,7 @@ export default async function AdminDisputesPage({ searchParams }: { searchParams
                       <DetailLine label="Loan status" value={loan.status} />
                       <DetailLine
                         label="Lender"
-                        link={`/u/${loan.lender_id}`}
+                        link={loan.lender_id ? `/u/${loan.lender_id}` : undefined}
                         value={lender?.first_name || 'unknown'}
                       />
                       <DetailLine

@@ -9,25 +9,37 @@ import { dateLabel } from '@/lib/utils';
 import type { Loan, Item } from '@/lib/types';
 
 /**
- * Manual loan detail page — for one-sided loans where the borrower has
- * no Partaz account. Strips out everything that requires a counterparty
- * (messaging, reviews, disputes, extensions, chain handoffs) and shows
- * a clean "this is what I lent, here are my notes, here's the way to
- * mark it returned" view.
+ * Manual loan detail page — for one-sided loans where the OTHER party
+ * has no Partaz account. Works in both directions:
+ *   - the current user is the lender (logged "I lent X to Sam")
+ *   - the current user is the borrower (logged "I borrowed X from Papaya")
  *
- * Phase 2 will add a "Send claim link" action here.
+ * Strips out everything that requires a counterparty account
+ * (messaging, reviews, disputes, extensions, chain handoffs).
  */
-export function ManualLoanDetail({ loan, item }: { loan: Loan; item: Item | null }) {
+export function ManualLoanDetail({
+  loan, item, currentUserId
+}: {
+  loan: Loan;
+  item: Item | null;
+  currentUserId: string;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Direction: which side am I on? Drives all copy + the claim link wording.
+  const iAmLender   = loan.lender_id === currentUserId;
+  const counterpartyName =
+    iAmLender ? (loan.borrower_name_freetext || 'someone')
+              : (loan.lender_name_freetext   || 'someone');
 
   const isActive    = loan.status === 'active';
   const isCompleted = loan.status === 'completed';
   const overdue     = loan.due_at && isActive && new Date(loan.due_at).getTime() < Date.now();
 
   async function markReturned() {
-    if (!confirm('Mark this loan as returned?')) return;
+    if (!window.confirm(iAmLender ? 'Mark this loan as returned?' : 'Mark this as given back?')) return;
     setBusy(true); setError(null);
     const sb = createClient();
     const { error } = await sb
@@ -40,7 +52,7 @@ export function ManualLoanDetail({ loan, item }: { loan: Loan; item: Item | null
   }
 
   async function reopen() {
-    if (!confirm('Reopen this loan? It will go back to "active" status.')) return;
+    if (!window.confirm('Reopen this loan? It will go back to "active" status.')) return;
     setBusy(true); setError(null);
     const sb = createClient();
     const { error } = await sb
@@ -53,7 +65,7 @@ export function ManualLoanDetail({ loan, item }: { loan: Loan; item: Item | null
   }
 
   async function del() {
-    if (!confirm('Delete this loan from your ledger? This cannot be undone.')) return;
+    if (!window.confirm('Delete this loan from your ledger? This cannot be undone.')) return;
     setBusy(true); setError(null);
     const sb = createClient();
     const { error } = await sb.from('loans').delete().eq('id', loan.id);
@@ -61,6 +73,13 @@ export function ManualLoanDetail({ loan, item }: { loan: Loan; item: Item | null
     router.replace('/loans');
     router.refresh();
   }
+
+  // Adapt copy based on direction
+  const verbPast      = iAmLender ? 'Lent' : 'Borrowed';
+  const verbPreposition = iAmLender ? 'to' : 'from';
+  const headerMode    = iAmLender ? 'Manual lend' : 'Manual borrow';
+  const markReturnedLabel = iAmLender ? <>Mark <Italic>returned</Italic></> : <>Mark <Italic>given back</Italic></>;
+  const claimPromptVerb   = iAmLender ? 'track it on their side' : 'see they lent it to you';
 
   return (
     <main className="max-w-2xl mx-auto pb-16">
@@ -70,40 +89,41 @@ export function ManualLoanDetail({ loan, item }: { loan: Loan; item: Item | null
           <Link href="/loans" className="text-ink-soft hover:text-ink">
             <Mono>← Ledger</Mono>
           </Link>
-          <Mono className="text-ink-soft">Manual loan</Mono>
+          <Mono className="text-ink-soft">{headerMode}</Mono>
         </div>
         <h1 className="mt-3 font-display font-extrabold text-[40px] leading-[0.9] tracking-[-0.04em] text-ink">
           {item?.title || 'Item'}
         </h1>
         <p className="font-display font-medium text-[15px] leading-[1.35] text-ink-soft mt-2">
-          {isLenderVerb(loan.status)} to{' '}
-          <span className="text-ink font-bold">{loan.borrower_name_freetext || 'someone'}</span>
+          {verbPast} {verbPreposition}{' '}
+          <span className="text-ink font-bold">{counterpartyName}</span>
           {loan.handover_at && <> · {dateLabel(loan.handover_at)}</>}
         </p>
       </header>
 
       <section className="px-5 pt-6 space-y-4">
         <StatusCard
+          iAmLender={iAmLender}
           status={loan.status}
           dueAt={loan.due_at}
           completedAt={loan.completed_at}
           overdue={!!overdue}
         />
 
-        {loan.borrower_contact && (
-          <Row label="Contact">{loan.borrower_contact}</Row>
+        {((iAmLender && loan.borrower_contact) || (!iAmLender && loan.lender_contact)) && (
+          <Row label="Contact">{iAmLender ? loan.borrower_contact : loan.lender_contact}</Row>
         )}
 
         {loan.handover_at && (
-          <Row label="Lent on">{dateLabel(loan.handover_at)}</Row>
+          <Row label={iAmLender ? 'Lent on' : 'Borrowed on'}>{dateLabel(loan.handover_at)}</Row>
         )}
 
         {loan.due_at && !isCompleted && (
-          <Row label="Expected back">{dateLabel(loan.due_at)}</Row>
+          <Row label={iAmLender ? 'Expected back' : 'Need to return by'}>{dateLabel(loan.due_at)}</Row>
         )}
 
         {loan.completed_at && (
-          <Row label="Returned">{dateLabel(loan.completed_at)}</Row>
+          <Row label={iAmLender ? 'Returned' : 'Given back'}>{dateLabel(loan.completed_at)}</Row>
         )}
 
         {loan.notes && (
@@ -113,11 +133,14 @@ export function ManualLoanDetail({ loan, item }: { loan: Loan; item: Item | null
         )}
       </section>
 
-      {/* Claim link — adoption hook for the borrower. Only meaningful while
-          the loan is still one-sided and active. */}
+      {/* Claim link — adoption hook. Available regardless of direction. */}
       {isActive && (
         <section className="px-5 pt-8">
-          <ClaimLinkPanel loanId={loan.id} borrowerName={loan.borrower_name_freetext || 'them'} />
+          <ClaimLinkPanel
+            loanId={loan.id}
+            counterpartyName={counterpartyName}
+            claimPromptVerb={claimPromptVerb}
+          />
         </section>
       )}
 
@@ -130,7 +153,7 @@ export function ManualLoanDetail({ loan, item }: { loan: Loan; item: Item | null
             disabled={busy}
             className="btn-primary w-full flex justify-between items-center"
           >
-            <span>{busy ? 'Saving…' : <>Mark <Italic>returned</Italic></>}</span>
+            <span>{busy ? 'Saving…' : markReturnedLabel}</span>
             <span aria-hidden>✓</span>
           </button>
         )}
@@ -172,8 +195,9 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 function StatusCard({
-  status, dueAt, completedAt, overdue
+  iAmLender, status, dueAt, completedAt, overdue
 }: {
+  iAmLender: boolean;
   status: Loan['status'];
   dueAt: string | null;
   completedAt: string | null;
@@ -181,24 +205,22 @@ function StatusCard({
 }) {
   let bg = 'bg-paper-soft';
   let tone = 'text-ink';
-  let label = 'In hand';
+  let label = iAmLender ? 'In their hands' : 'In my hands';
   let sub = '';
 
   if (status === 'completed' && completedAt) {
     bg = 'bg-cat-kitchen';
     tone = 'text-ink';
-    label = 'Home safe';
-    sub = `Returned ${dateLabel(completedAt)}`;
+    label = iAmLender ? 'Home safe' : 'Returned';
+    sub = (iAmLender ? 'Returned ' : 'Gave back ') + dateLabel(completedAt);
   } else if (overdue && dueAt) {
     bg = 'bg-cat-tools/10 border border-cat-tools/40';
     tone = 'text-cat-tools';
     label = 'Overdue';
     sub = `Due ${dateLabel(dueAt)}`;
   } else if (dueAt) {
-    label = 'In hand';
     sub = `Due ${dateLabel(dueAt)}`;
   } else if (status === 'active') {
-    label = 'In hand';
     sub = 'Open-ended — no due date set';
   }
 
@@ -207,17 +229,27 @@ function StatusCard({
       <div className={`font-display font-bold text-[22px] tracking-[-0.02em] ${tone}`}>
         {label}.
       </div>
-      {sub && <div className={`font-display text-[13px] mt-1 ${tone === 'text-cat-tools' ? 'text-cat-tools' : 'text-ink-soft'}`}>{sub}</div>}
+      {sub && (
+        <div className={`font-display text-[13px] mt-1 ${tone === 'text-cat-tools' ? 'text-cat-tools' : 'text-ink-soft'}`}>
+          {sub}
+        </div>
+      )}
     </div>
   );
 }
 
 /**
- * "Send a claim link" panel — collapsed by default, expands to generate a
- * URL the lender can paste into WhatsApp / email / wherever. Soft-secondary
- * action; deliberately understated so it doesn't feel pushy.
+ * "Send a claim link" panel. Same mechanism in both directions — generates
+ * a single-use token. When the other party clicks, they fill in their side
+ * (lender or borrower) based on which one is null on the loan.
  */
-function ClaimLinkPanel({ loanId, borrowerName }: { loanId: string; borrowerName: string }) {
+function ClaimLinkPanel({
+  loanId, counterpartyName, claimPromptVerb
+}: {
+  loanId: string;
+  counterpartyName: string;
+  claimPromptVerb: string;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [url, setUrl] = useState<string | null>(null);
@@ -232,7 +264,6 @@ function ClaimLinkPanel({ loanId, borrowerName }: { loanId: string; borrowerName
     if (error) { setError(error.message); return; }
     const fullUrl = `${window.location.origin}/claim/${data}`;
     setUrl(fullUrl);
-    // Auto-copy to clipboard on generate — they're going to paste it anyway.
     try { await navigator.clipboard.writeText(fullUrl); setCopied(true); } catch { /* manual copy is fine */ }
   }
 
@@ -243,7 +274,7 @@ function ClaimLinkPanel({ loanId, borrowerName }: { loanId: string; borrowerName
   }
 
   const whatsappHref = url
-    ? `https://wa.me/?text=${encodeURIComponent(`Hey ${borrowerName}, I'm using Partaz to keep track of stuff I lend out. Wanna track this one together? ${url}`)}`
+    ? `https://wa.me/?text=${encodeURIComponent(`Hey ${counterpartyName}, I'm using Partaz to track stuff. Wanna ${claimPromptVerb}? ${url}`)}`
     : '#';
 
   if (!expanded) {
@@ -254,7 +285,7 @@ function ClaimLinkPanel({ loanId, borrowerName }: { loanId: string; borrowerName
         className="block w-full text-left border border-dashed border-ink/30 p-4 hover:border-ink/60 transition-colors"
       >
         <div className="font-display font-bold text-[15px] text-ink">
-          Invite <Italic>{borrowerName}</Italic> to track this →
+          Invite <Italic>{counterpartyName}</Italic> to track this →
         </div>
         <Mono className="text-ink-soft mt-1 block">
           Optional. They can join Partaz and see their side of the loan.
@@ -324,13 +355,4 @@ function ClaimLinkPanel({ loanId, borrowerName }: { loanId: string; borrowerName
       </button>
     </div>
   );
-}
-
-function isLenderVerb(status: Loan['status']): string {
-  switch (status) {
-    case 'completed': return 'Was lent';
-    case 'cancelled': return 'Was meant for';
-    case 'lost':      return 'Was lent';
-    default:          return 'Lent';
-  }
 }

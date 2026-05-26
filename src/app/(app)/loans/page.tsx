@@ -90,21 +90,27 @@ export default async function LoansPage() {
       )}
 
       {/* Always-visible "Log a loan" CTA — primary cornerstone action. */}
-      <section className="px-5 pt-5">
+      <section className="px-5 pt-5 grid grid-cols-2 gap-3">
         <Link
-          href="/loans/new"
+          href="/loans/new?direction=lend"
           className="block border-[1.5px] border-ink p-4 hover:bg-paper-soft transition-colors"
         >
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="font-display font-extrabold text-[20px] tracking-[-0.02em] text-ink leading-tight">
-                Log a <Italic>loan</Italic>.
-              </div>
-              <div className="mt-1 font-display font-medium text-[13px] text-ink-soft">
-                Already lent something? Add it to your ledger — no app needed on their side.
-              </div>
-            </div>
-            <span aria-hidden className="font-display text-[24px] text-ink shrink-0">+</span>
+          <div className="font-display font-extrabold text-[18px] tracking-[-0.02em] text-ink leading-tight">
+            I <Italic>lent</Italic> →
+          </div>
+          <div className="mt-1 font-display font-medium text-[12px] text-ink-soft leading-snug">
+            Something of mine went out.
+          </div>
+        </Link>
+        <Link
+          href="/loans/new?direction=borrow"
+          className="block border-[1.5px] border-ink p-4 hover:bg-paper-soft transition-colors"
+        >
+          <div className="font-display font-extrabold text-[18px] tracking-[-0.02em] text-ink leading-tight">
+            I <Italic>borrowed</Italic> ←
+          </div>
+          <div className="mt-1 font-display font-medium text-[12px] text-ink-soft leading-snug">
+            Something of theirs came in.
           </div>
         </Link>
       </section>
@@ -201,13 +207,17 @@ function LedgerGroup({
       </div>
       <ul className="flex flex-col">
         {loans.map(l => {
+          // Figure out who the user is (lender or borrower) and the other side.
+          // For manual loans the counterparty has no account, so fall back to
+          // whichever free-text name applies for the direction.
           const isLender = l.lender_id === userId;
-          // For manual loans (no borrower account), fall back to the
-          // free-text name the lender originally typed.
           const counterpartyId = isLender ? l.borrower_id : l.lender_id;
+          const counterpartyFreetext = isLender
+            ? l.borrower_name_freetext
+            : l.lender_name_freetext;
           const counterpartyName = counterpartyId
             ? (profileById.get(counterpartyId)?.first_name || 'someone')
-            : (l.borrower_name_freetext || 'someone');
+            : (counterpartyFreetext || 'someone');
           return (
             <LedgerRow
               key={l.id}
@@ -232,7 +242,8 @@ function LedgerRow({
   counterpartyName: string;
 }) {
   const isLender = loan.lender_id === userId;
-  const isManual = loan.borrower_id === null;
+  // Manual = either side hasn't claimed an account yet (one-sided record).
+  const isManual = loan.borrower_id === null || loan.lender_id === null;
   // Strip colour comes from the COUNTERPARTY'S personal territory, not from
   // the item's category. Two benefits:
   //   1. Consecutive items with the same category no longer look identical

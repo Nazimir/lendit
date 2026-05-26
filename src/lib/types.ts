@@ -174,7 +174,8 @@ export interface Loan {
   item_id: string;
   /** Null for manual loans where the borrower has no Partaz account. */
   borrower_id: string | null;
-  lender_id: string;
+  /** Null for manual borrow records where the lender has no Partaz account. */
+  lender_id: string | null;
   request_id: string | null;
   status: LoanStatus;
   loan_period_days: number | null;
@@ -190,9 +191,14 @@ export interface Loan {
   /** Free-text borrower name for manual loans. Preserved even after a claim
       link assigns borrower_id, as a record of how the lender first identified them. */
   borrower_name_freetext: string | null;
-  /** Optional phone/email the lender entered (used for sending claim links). */
+  /** Optional phone/email the borrower's contact (used for sending claim links). */
   borrower_contact: string | null;
-  /** Optional lender-only notes. */
+  /** Free-text lender name for manual borrow records. Preserved even after a claim
+      link assigns lender_id. */
+  lender_name_freetext: string | null;
+  /** Optional phone/email for the lender (used for sending claim links). */
+  lender_contact: string | null;
+  /** Optional notes, private to whoever created the loan. */
   notes: string | null;
 }
 
