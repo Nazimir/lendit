@@ -101,41 +101,54 @@ function NewLoanInner() {
       setError(direction === 'lend' ? 'Borrower name is required.' : 'Lender name is required.');
       return;
     }
-    if (!itemQuery.trim()) { setError('Item name is required.'); return; }
+    if (!itemQuery.trim())              { setError('Item name is required.'); return; }
+
     setBusy(true); setError(null);
 
-    const sb = createClient();
-    const handoverAt = new Date(lentOn + 'T12:00:00').toISOString();
-    const dueAt      = dueOn ? new Date(dueOn + 'T12:00:00').toISOString() : null;
-    const returnedAt = alreadyReturned ? new Date(returnedOn + 'T12:00:00').toISOString() : null;
+    try {
+      const sb = createClient();
+      // All three dates are honestly optional — empty means "I don't remember
+      // / don't want to commit to a specific date." Store as NULL in that case
+      // rather than fabricating today.
+      const handoverAt = lentOn     ? new Date(lentOn     + 'T12:00:00').toISOString() : null;
+      const dueAt      = dueOn      ? new Date(dueOn      + 'T12:00:00').toISOString() : null;
+      const returnedAt = alreadyReturned && returnedOn
+        ? new Date(returnedOn + 'T12:00:00').toISOString()
+        : null;
 
-    const { data, error } = direction === 'lend'
-      ? await sb.rpc('create_manual_loan', {
-          p_item_id:           selectedItemId,
-          p_item_title:        selectedItemId ? null : itemQuery.trim(),
-          p_borrower_name:     counterpartyName.trim(),
-          p_borrower_contact:  counterpartyContact.trim() || null,
-          p_handover_at:       handoverAt,
-          p_due_at:            dueAt,
-          p_already_returned:  alreadyReturned,
-          p_returned_at:       returnedAt,
-          p_notes:             notes.trim() || null
-        })
-      : await sb.rpc('create_manual_borrow', {
-          p_item_title:        itemQuery.trim(),
-          p_lender_name:       counterpartyName.trim(),
-          p_lender_contact:    counterpartyContact.trim() || null,
-          p_handover_at:       handoverAt,
-          p_due_at:            dueAt,
-          p_already_returned:  alreadyReturned,
-          p_returned_at:       returnedAt,
-          p_notes:             notes.trim() || null
-        });
+      const { data, error } = direction === 'lend'
+        ? await sb.rpc('create_manual_loan', {
+            p_item_id:           selectedItemId,
+            p_item_title:        selectedItemId ? null : itemQuery.trim(),
+            p_borrower_name:     counterpartyName.trim(),
+            p_borrower_contact:  counterpartyContact.trim() || null,
+            p_handover_at:       handoverAt,
+            p_due_at:            dueAt,
+            p_already_returned:  alreadyReturned,
+            p_returned_at:       returnedAt,
+            p_notes:             notes.trim() || null
+          })
+        : await sb.rpc('create_manual_borrow', {
+            p_item_title:        itemQuery.trim(),
+            p_lender_name:       counterpartyName.trim(),
+            p_lender_contact:    counterpartyContact.trim() || null,
+            p_handover_at:       handoverAt,
+            p_due_at:            dueAt,
+            p_already_returned:  alreadyReturned,
+            p_returned_at:       returnedAt,
+            p_notes:             notes.trim() || null
+          });
 
-    if (error) { setError(error.message); setBusy(false); return; }
+      if (error) { setError(error.message); setBusy(false); return; }
 
-    router.replace(`/loans/${data}`);
-    router.refresh();
+      router.replace(`/loans/${data}`);
+      router.refresh();
+    } catch (err) {
+      // Defensive: anything that throws (invalid date string, network blip,
+      // etc.) lands here so the UI doesn't get stuck on "Saving…".
+      setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
+      setBusy(false);
+    }
   }
 
   // Labels and copy that adapt to direction.
@@ -266,7 +279,9 @@ function NewLoanInner() {
 
         {/* Dates */}
         <div className="mb-7">
-          <label className="label">{lentOnLabel}</label>
+          <label className="label">
+            {lentOnLabel} <span className="text-ink-soft">— optional</span>
+          </label>
           <input
             className="input"
             type="date"
@@ -274,6 +289,9 @@ function NewLoanInner() {
             value={lentOn}
             onChange={e => setLentOn(e.target.value)}
           />
+          <Mono className="text-ink-soft mt-2 block">
+            Leave blank if you don&apos;t remember exactly.
+          </Mono>
         </div>
 
         <label className="flex items-start gap-3 py-3 cursor-pointer border-t border-ink/15 mb-3">
