@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeImage } from '@/lib/imageUpload';
 import { ProgressBanner } from '@/components/Spinner';
@@ -12,7 +12,17 @@ import { PasswordInput } from '@/components/PasswordInput';
 import { GoogleButton, OrDivider } from '@/components/GoogleButton';
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupInner />
+    </Suspense>
+  );
+}
+
+function SignupInner() {
   const router = useRouter();
+  const search = useSearchParams();
+  const next = search.get('next') || '/home';
   const [firstName, setFirstName] = useState('');
   const [suburb, setSuburb] = useState('');
   const [phone, setPhone] = useState('');
@@ -74,10 +84,12 @@ export default function SignupPage() {
     }
 
     if (data.session) {
-      router.replace('/home');
+      router.replace(next);
       router.refresh();
       return;
     }
+
+    const nextParam = next !== '/home' ? `&next=${encodeURIComponent(next)}` : '';
 
     // Supabase's anti-enumeration safety: if the email is already registered,
     // signUp() succeeds silently — no error, no email sent — but returns the
@@ -85,14 +97,14 @@ export default function SignupPage() {
     // sit on /confirm-email forever waiting for a code that's never coming.
     // See: https://supabase.com/docs/reference/javascript/auth-signup
     if (data.user && (data.user.identities ?? []).length === 0) {
-      router.replace(`/login?email=${encodeURIComponent(email)}&exists=1`);
+      router.replace(`/login?email=${encodeURIComponent(email)}&exists=1${nextParam}`);
       return;
     }
 
     // Email confirmation required. Hand the user to the OTP entry page
     // rather than a dead-end "check your email" message — codes don't
     // suffer the cross-browser / link-expiration trap that magic links do.
-    router.replace(`/confirm-email?email=${encodeURIComponent(email)}`);
+    router.replace(`/confirm-email?email=${encodeURIComponent(email)}${nextParam}`);
   }
 
   return (
@@ -113,7 +125,7 @@ export default function SignupPage() {
         </div>
 
         <div className="mt-10">
-          <GoogleButton />
+          <GoogleButton next={next} />
           <OrDivider />
         </div>
 

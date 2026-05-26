@@ -113,6 +113,14 @@ export function ManualLoanDetail({ loan, item }: { loan: Loan; item: Item | null
         )}
       </section>
 
+      {/* Claim link — adoption hook for the borrower. Only meaningful while
+          the loan is still one-sided and active. */}
+      {isActive && (
+        <section className="px-5 pt-8">
+          <ClaimLinkPanel loanId={loan.id} borrowerName={loan.borrower_name_freetext || 'them'} />
+        </section>
+      )}
+
       {/* Actions */}
       <section className="px-5 pt-8 space-y-3">
         {isActive && (
@@ -200,6 +208,120 @@ function StatusCard({
         {label}.
       </div>
       {sub && <div className={`font-display text-[13px] mt-1 ${tone === 'text-cat-tools' ? 'text-cat-tools' : 'text-ink-soft'}`}>{sub}</div>}
+    </div>
+  );
+}
+
+/**
+ * "Send a claim link" panel — collapsed by default, expands to generate a
+ * URL the lender can paste into WhatsApp / email / wherever. Soft-secondary
+ * action; deliberately understated so it doesn't feel pushy.
+ */
+function ClaimLinkPanel({ loanId, borrowerName }: { loanId: string; borrowerName: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [url, setUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function generate() {
+    setGenerating(true); setError(null);
+    const sb = createClient();
+    const { data, error } = await sb.rpc('create_loan_claim_token', { p_loan_id: loanId });
+    setGenerating(false);
+    if (error) { setError(error.message); return; }
+    const fullUrl = `${window.location.origin}/claim/${data}`;
+    setUrl(fullUrl);
+    // Auto-copy to clipboard on generate — they're going to paste it anyway.
+    try { await navigator.clipboard.writeText(fullUrl); setCopied(true); } catch { /* manual copy is fine */ }
+  }
+
+  async function copy() {
+    if (!url) return;
+    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+    catch { /* user can select manually */ }
+  }
+
+  const whatsappHref = url
+    ? `https://wa.me/?text=${encodeURIComponent(`Hey ${borrowerName}, I'm using Partaz to keep track of stuff I lend out. Wanna track this one together? ${url}`)}`
+    : '#';
+
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        className="block w-full text-left border border-dashed border-ink/30 p-4 hover:border-ink/60 transition-colors"
+      >
+        <div className="font-display font-bold text-[15px] text-ink">
+          Invite <Italic>{borrowerName}</Italic> to track this →
+        </div>
+        <Mono className="text-ink-soft mt-1 block">
+          Optional. They can join Partaz and see their side of the loan.
+        </Mono>
+      </button>
+    );
+  }
+
+  return (
+    <div className="border border-ink/30 p-4">
+      <div className="font-display font-bold text-[16px] text-ink">
+        Share a <Italic>claim link</Italic>.
+      </div>
+      <Mono className="text-ink-soft mt-1 block">
+        Single-use. Expires in 7 days. They confirm or reject — your record is untouched either way.
+      </Mono>
+
+      {!url && (
+        <button
+          type="button"
+          onClick={generate}
+          disabled={generating}
+          className="btn-primary w-full mt-4 flex justify-between items-center"
+        >
+          <span>{generating ? 'Generating…' : <>Generate <Italic>link</Italic></>}</span>
+          <span aria-hidden>→</span>
+        </button>
+      )}
+
+      {url && (
+        <div className="mt-4 space-y-3">
+          <input
+            type="text"
+            readOnly
+            value={url}
+            onFocus={e => e.currentTarget.select()}
+            className="input font-mono text-[12px]"
+          />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={copy}
+              className="btn-secondary flex-1 flex justify-center items-center"
+            >
+              {copied ? 'Copied ✓' : 'Copy link'}
+            </button>
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary flex-1 flex justify-center items-center"
+            >
+              Send on WhatsApp
+            </a>
+          </div>
+        </div>
+      )}
+
+      {error && <p className="font-italic italic text-sm text-cat-tools mt-3">{error}</p>}
+
+      <button
+        type="button"
+        onClick={() => setExpanded(false)}
+        className="w-full mt-3 py-2 font-mono text-[10px] uppercase tracking-mono text-ink-soft hover:text-ink"
+      >
+        Close
+      </button>
     </div>
   );
 }
