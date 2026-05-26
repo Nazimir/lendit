@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Wordmark } from '@/components/Wordmark';
 import { Mono, Italic } from '@/components/typography';
 import { PasswordInput } from '@/components/PasswordInput';
+import { GoogleButton, OrDivider } from '@/components/GoogleButton';
 
 function LoginInner() {
   const router = useRouter();
@@ -66,7 +67,12 @@ function LoginInner() {
           </div>
         )}
 
-        <form onSubmit={onSubmit} className="mt-10 flex-1">
+        <div className="mt-10">
+          <GoogleButton next={next} />
+          <OrDivider />
+        </div>
+
+        <form onSubmit={onSubmit} className="mt-0 flex-1">
           <div className="mb-6">
             <label className="label">Email</label>
             <input

@@ -9,6 +9,7 @@ import { ProgressBanner } from '@/components/Spinner';
 import { Wordmark } from '@/components/Wordmark';
 import { Mono, Italic } from '@/components/typography';
 import { PasswordInput } from '@/components/PasswordInput';
+import { GoogleButton, OrDivider } from '@/components/GoogleButton';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -111,7 +112,12 @@ export default function SignupPage() {
           </p>
         </div>
 
-        <form onSubmit={onSubmit} className="mt-10">
+        <div className="mt-10">
+          <GoogleButton />
+          <OrDivider />
+        </div>
+
+        <form onSubmit={onSubmit} className="mt-0">
           <div className="mb-6">
             <label className="label">First name</label>
             <input className="input" required value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="What neighbours call you" />
