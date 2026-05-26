@@ -38,7 +38,8 @@ export default async function MyListingDetail({ params }: { params: { id: string
 
   const reqList = (requests || []) as BorrowRequest[];
   const profileIds = new Set<string>(reqList.map(r => r.borrower_id));
-  if (activeLoan) profileIds.add(activeLoan.borrower_id);
+  // Manual loans have no borrower account, so only add when borrower_id exists.
+  if (activeLoan && activeLoan.borrower_id) profileIds.add(activeLoan.borrower_id);
 
   let borrowers: Profile[] = [];
   if (profileIds.size > 0) {
