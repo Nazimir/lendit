@@ -80,7 +80,7 @@ function ConfirmInner() {
             Check your <Italic>inbox</Italic>.
           </h1>
           <p className="font-display font-medium text-[16px] leading-[1.4] text-ink-soft mt-4 text-pretty">
-            We sent you a 6-digit code. Pop it in below to finish setting up your shelf. The code expires in an hour — if it doesn&apos;t arrive, hit Resend.
+            We sent you a code. Pop it in below to finish setting up your shelf. The code expires in an hour — if it doesn&apos;t arrive, hit Resend.
           </p>
         </div>
 
@@ -106,15 +106,15 @@ function ConfirmInner() {
               className="input text-center"
               style={{ letterSpacing: '0.4em', fontVariantNumeric: 'tabular-nums' }}
               inputMode="numeric"
-              pattern="[0-9]{6}"
-              maxLength={6}
+              pattern="[0-9]{6,10}"
+              maxLength={10}
               required
               autoComplete="one-time-code"
               value={code}
-              onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 10))}
               placeholder="••••••"
             />
-            <Mono className="text-ink-soft mt-2 block">6 digits, from the email.</Mono>
+            <Mono className="text-ink-soft mt-2 block">From the email.</Mono>
           </div>
 
           {error && <p className="font-italic italic text-sm text-cat-tools mt-3">{error}</p>}
@@ -122,7 +122,7 @@ function ConfirmInner() {
 
           <button
             className="btn-primary w-full mt-6 flex justify-between items-center"
-            disabled={busy || code.length !== 6 || !email}
+            disabled={busy || code.length < 6 || !email}
           >
             <span>{busy ? 'Checking…' : <>Confirm <Italic>email</Italic></>}</span>
             <span aria-hidden>→</span>

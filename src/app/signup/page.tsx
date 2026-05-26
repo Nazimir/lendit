@@ -75,12 +75,23 @@ export default function SignupPage() {
     if (data.session) {
       router.replace('/home');
       router.refresh();
-    } else {
-      // Email confirmation required. Hand the user to the OTP entry page
-      // rather than a dead-end "check your email" message — codes don't
-      // suffer the cross-browser / link-expiration trap that magic links do.
-      router.replace(`/confirm-email?email=${encodeURIComponent(email)}`);
+      return;
     }
+
+    // Supabase's anti-enumeration safety: if the email is already registered,
+    // signUp() succeeds silently — no error, no email sent — but returns the
+    // user with an empty `identities` array. Without this check the user would
+    // sit on /confirm-email forever waiting for a code that's never coming.
+    // See: https://supabase.com/docs/reference/javascript/auth-signup
+    if (data.user && (data.user.identities ?? []).length === 0) {
+      router.replace(`/login?email=${encodeURIComponent(email)}&exists=1`);
+      return;
+    }
+
+    // Email confirmation required. Hand the user to the OTP entry page
+    // rather than a dead-end "check your email" message — codes don't
+    // suffer the cross-browser / link-expiration trap that magic links do.
+    router.replace(`/confirm-email?email=${encodeURIComponent(email)}`);
   }
 
   return (

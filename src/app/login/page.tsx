@@ -12,7 +12,9 @@ function LoginInner() {
   const router = useRouter();
   const search = useSearchParams();
   const next = search.get('next') || '/home';
-  const [email, setEmail] = useState('');
+  const emailFromQuery = search.get('email') || '';
+  const isExistingAccount = search.get('exists') === '1';
+  const [email, setEmail] = useState(emailFromQuery);
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +56,15 @@ function LoginInner() {
             Pick up where you left off.
           </p>
         </div>
+
+        {isExistingAccount && (
+          <div className="mt-8 p-4 bg-cat-kitchen border border-ink/10">
+            <p className="font-display text-[15px] leading-snug text-ink">
+              You already have a <Italic>shelf</Italic> with this email. Sign in below — or tap{' '}
+              <Link href="/forgot" className="underline">Forgot?</Link> if you don&apos;t remember your password.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={onSubmit} className="mt-10 flex-1">
           <div className="mb-6">
