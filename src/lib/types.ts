@@ -219,6 +219,8 @@ export interface Review {
   stars: number;
   comment: string;
   created_at: string;
+  /** Set when the reviewer updates their review within the 48-hour edit window. */
+  edited_at: string | null;
 }
 
 export const CATEGORIES = [
