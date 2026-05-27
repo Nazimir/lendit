@@ -4,7 +4,6 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { normalizeImage } from '@/lib/imageUpload';
 import { ProgressBanner } from '@/components/Spinner';
 import { Wordmark } from '@/components/Wordmark';
 import { Mono, Italic } from '@/components/typography';
@@ -28,7 +27,6 @@ function SignupInner() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
@@ -45,43 +43,29 @@ function SignupInner() {
     const supabase = createClient();
 
     setProgress('Creating your account…');
+    // Pass TOS + adult-attestation in user_metadata so the handle_new_user
+    // database trigger writes them atomically with profile creation. We can't
+    // .update() the profile from here — at this point the user has no session
+    // yet (email confirmation pending) so RLS blocks any client-side writes.
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { first_name: firstName, suburb, phone },
+        data: {
+          first_name: firstName,
+          suburb,
+          phone,
+          tos_accepted_at: new Date().toISOString(),
+          is_adult_attested: true
+        },
         emailRedirectTo: `${window.location.origin}/auth/callback`
       }
     });
     if (error) { setError(error.message); setBusy(false); setProgress(null); return; }
 
-    const userId = data.user?.id;
-    if (userId && photoFile) {
-      const isHeic = /\.hei[cf]$/i.test(photoFile.name) || /heic|heif/i.test(photoFile.type);
-      setProgress(isHeic ? 'Converting & uploading photo…' : 'Uploading profile photo…');
-      let normalized: File;
-      try { normalized = await normalizeImage(photoFile); }
-      catch { normalized = photoFile; }
-      const ext = (normalized.name.split('.').pop() || 'jpg').toLowerCase();
-      const path = `${userId}/avatar.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from('profile-photos')
-        .upload(path, normalized, { upsert: true });
-      if (!upErr) {
-        const { data: pub } = supabase.storage.from('profile-photos').getPublicUrl(path);
-        await supabase.from('profiles').update({ photo_url: pub.publicUrl }).eq('id', userId);
-      }
-    }
-
-    if (userId) {
-      await supabase
-        .from('profiles')
-        .update({
-          tos_accepted_at: new Date().toISOString(),
-          is_adult_attested: true
-        })
-        .eq('id', userId);
-    }
+    // Profile photo upload is deferred to /profile after the user is signed in —
+    // pre-confirmation uploads fail silently under storage RLS. Users get a
+    // "complete your profile" prompt post-signup. (See task #7 follow-up notes.)
 
     if (data.session) {
       router.replace(next);
@@ -141,16 +125,6 @@ function SignupInner() {
           <div className="mb-6">
             <label className="label">Phone (optional)</label>
             <input className="input" type="tel" placeholder="+230 …" value={phone} onChange={e => setPhone(e.target.value)} />
-          </div>
-          <div className="mb-6">
-            <label className="label">Profile photo (optional)</label>
-            <input
-              type="file"
-              accept="image/*"
-              capture="user"
-              onChange={e => setPhotoFile(e.target.files?.[0] ?? null)}
-              className="input"
-            />
           </div>
           <div className="mb-6">
             <label className="label">Email</label>
