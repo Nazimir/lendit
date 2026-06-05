@@ -68,7 +68,7 @@ function AcceptOrDecline({ token, lenderName }: { token: string; lenderName: str
       </button>
 
       <div className="mt-4 text-center">
-        <Link href="/home" className="font-mono text-[10px] uppercase tracking-mono text-ink-soft hover:text-ink">
+        <Link href="/loans" className="font-mono text-[10px] uppercase tracking-mono text-ink-soft hover:text-ink">
           Maybe later
         </Link>
       </div>

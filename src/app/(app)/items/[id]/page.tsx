@@ -47,7 +47,7 @@ export default async function ItemDetailPage({ params }: { params: { id: string 
       <ItemAd
         item={item as Item}
         owner={(owner as Profile) || null}
-        back="/home"
+        back="/discover"
         actionSlot={<SafetyMenu targetKind="item" targetId={item.id} context="this listing" />}
       />
 

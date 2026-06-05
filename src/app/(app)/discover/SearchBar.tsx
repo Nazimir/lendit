@@ -11,7 +11,7 @@ export function SearchBar({ defaultValue }: { defaultValue: string }) {
     e.preventDefault();
     const params = new URLSearchParams();
     if (q.trim()) params.set('q', q.trim());
-    router.push(`/home${params.toString() ? '?' + params.toString() : ''}`);
+    router.push(`/discover${params.toString() ? '?' + params.toString() : ''}`);
   }
 
   return (

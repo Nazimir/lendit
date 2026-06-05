@@ -152,7 +152,7 @@ function PublicMasthead({
         <Mono style={{ color: palette.ink, opacity: 0.85 }}>SINCE {sinceMonth}</Mono>
       </div>
 
-      <Link href="/home" className="mt-5 inline-block hover:opacity-70 transition" style={{ color: palette.ink }}>
+      <Link href="/discover" className="mt-5 inline-block hover:opacity-70 transition" style={{ color: palette.ink }}>
         <Mono style={{ color: palette.ink }}>← Back</Mono>
       </Link>
 

@@ -73,7 +73,7 @@ export default function ResetPasswordPage() {
     if (error) { setError(error.message); return; }
     setDone(true);
     setTimeout(() => {
-      router.replace('/home');
+      router.replace('/loans');
       router.refresh();
     }, 1500);
   }

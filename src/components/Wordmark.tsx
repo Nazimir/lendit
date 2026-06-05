@@ -13,7 +13,7 @@ import Link from 'next/link';
 export function Wordmark({
   size = 24,
   asLink = true,
-  href = '/home',
+  href = '/loans',
   className = ''
 }: {
   size?: number;

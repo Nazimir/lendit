@@ -21,7 +21,7 @@ export default function SignupPage() {
 function SignupInner() {
   const router = useRouter();
   const search = useSearchParams();
-  const next = search.get('next') || '/home';
+  const next = search.get('next') || '/loans';
   const [firstName, setFirstName] = useState('');
   const [suburb, setSuburb] = useState('');
   const [phone, setPhone] = useState('');
@@ -73,7 +73,7 @@ function SignupInner() {
       return;
     }
 
-    const nextParam = next !== '/home' ? `&next=${encodeURIComponent(next)}` : '';
+    const nextParam = next !== '/loans' ? `&next=${encodeURIComponent(next)}` : '';
 
     // Supabase's anti-enumeration safety: if the email is already registered,
     // signUp() succeeds silently — no error, no email sent — but returns the

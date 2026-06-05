@@ -28,7 +28,7 @@ export function ItemAd({
   item,
   owner,
   ownerView = false,
-  back = '/home',
+  back = '/discover',
   actionSlot
 }: {
   item: Item;

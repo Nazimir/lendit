@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Italic } from '@/components/typography';
 
 type Props = {
-  /** Where to send the user after Google completes. Defaults to /home. */
+  /** Where to send the user after Google completes. Defaults to /loans. */
   next?: string;
   /** Custom label override — defaults to "Continue with Google". */
   label?: string;
@@ -17,7 +17,7 @@ type Props = {
  * dance and redirects back to /auth/callback, which exchanges the code
  * for a session and lands the user wherever `next` points.
  */
-export function GoogleButton({ next = '/home', label }: Props) {
+export function GoogleButton({ next = '/loans', label }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -19,7 +19,7 @@ function ConfirmInner() {
   const router = useRouter();
   const search = useSearchParams();
   const emailFromQuery = search.get('email') || '';
-  const next = search.get('next') || '/home';
+  const next = search.get('next') || '/loans';
 
   const [email, setEmail] = useState(emailFromQuery);
   const [code, setCode] = useState('');

@@ -4,10 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
+// Ledger first — Partaz is primarily a personal inventory / loan tracker;
+// Discover (formerly Feed) is the secondary "what's out there in the
+// neighbourhood" surface.
 const tabs: { href: string; label: string }[] = [
-  { href: '/home',     label: 'Feed' },
+  { href: '/loans',    label: 'Ledger' },
+  { href: '/discover', label: 'Discover' },
   { href: '/listings', label: 'Mine' },
-  { href: '/loans',    label: 'Loans' },
   { href: '/messages', label: 'Inbox' },
   { href: '/profile',  label: 'Profile' }
 ];

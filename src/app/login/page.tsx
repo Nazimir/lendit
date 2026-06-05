@@ -12,7 +12,7 @@ import { GoogleButton, OrDivider } from '@/components/GoogleButton';
 function LoginInner() {
   const router = useRouter();
   const search = useSearchParams();
-  const next = search.get('next') || '/home';
+  const next = search.get('next') || '/loans';
   const emailFromQuery = search.get('email') || '';
   const isExistingAccount = search.get('exists') === '1';
   const [email, setEmail] = useState(emailFromQuery);

@@ -18,7 +18,7 @@ export default function VerifyPage() {
 function VerifyInner() {
   const router = useRouter();
   const search = useSearchParams();
-  const next = search.get('next') || '/home';
+  const next = search.get('next') || '/loans';
 
   const [stage, setStage] = useState<'phone' | 'code'>('phone');
   const [phone, setPhone] = useState('');
