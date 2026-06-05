@@ -4,11 +4,12 @@ import { Mono, Italic } from '@/components/typography';
 import { MonoBadge } from '@/components/MonoBadge';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { grainStyle } from '@/lib/grain';
+import { TagFilterURL } from '@/components/TagFilterURL';
 import type { Item, BorrowRequest } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-export default async function MyListingsPage() {
+export default async function MyListingsPage({ searchParams }: { searchParams: { tag?: string } }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -17,7 +18,14 @@ export default async function MyListingsPage() {
     .from('items').select('*').eq('owner_id', user.id)
     .order('created_at', { ascending: false });
 
-  const itemList = (items || []) as Item[];
+  const allItems = (items || []) as Item[];
+
+  // Tag filter — derived from all items, applied to the visible list.
+  const allTags = Array.from(new Set(allItems.flatMap(i => i.tags ?? []))).sort();
+  const activeTag = searchParams.tag ?? null;
+  const itemList = activeTag
+    ? allItems.filter(i => (i.tags ?? []).includes(activeTag))
+    : allItems;
 
   // Pending request counts per item
   let pendingByItem: Record<string, number> = {};
@@ -41,7 +49,9 @@ export default async function MyListingsPage() {
     weekday: 'short', day: '2-digit', month: 'short'
   }).toUpperCase().replace(',', ' ·');
 
-  const total = itemList.length;
+  // Headline numbers come from the FULL shelf, not the filtered subset —
+  // so the page still says "Twelve things" even when filtered to two.
+  const total = allItems.length;
   const countWord = numberWord(total);
 
   return (
@@ -63,6 +73,12 @@ export default async function MyListingsPage() {
         )}
       </header>
 
+      {allTags.length > 0 && (
+        <section className="px-5 pt-5">
+          <TagFilterURL tags={allTags} />
+        </section>
+      )}
+
       <section className="px-5 pt-5">
         {total === 0 ? (
           <div className="py-10 text-center">
@@ -73,6 +89,12 @@ export default async function MyListingsPage() {
               <span>List your first <Italic>thing</Italic></span>
               <span aria-hidden>+</span>
             </Link>
+          </div>
+        ) : itemList.length === 0 ? (
+          <div className="py-10 text-center">
+            <p className="font-italic italic text-[16px] text-ink-soft">
+              Nothing on your shelf matches <Italic>{activeTag}</Italic>.
+            </p>
           </div>
         ) : (
           <ul className="flex flex-col">

@@ -9,6 +9,7 @@ import { ProgressBanner } from '@/components/Spinner';
 import { Wordmark } from '@/components/Wordmark';
 import { Mono, Italic, Rule } from '@/components/typography';
 import { normalizeImage } from '@/lib/imageUpload';
+import { TagInput } from '@/components/TagInput';
 
 export function NewListingForm() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export function NewListingForm() {
   const [available, setAvailable] = useState(true);
   const [isPrivate, setIsPrivate] = useState(false);
   const [quirks, setQuirks] = useState<Quirks>({});
+  const [tags, setTags] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +73,8 @@ export function NewListingForm() {
       chain_handoffs_allowed: chainHandoffs,
       is_available: available,
       visibility: isPrivate ? 'private' : 'public',
-      quirks: cleanQuirks
+      quirks: cleanQuirks,
+      tags
     }).select('id').single();
 
     if (insErr) { setError(insErr.message); setBusy(false); setProgress(null); return; }
@@ -137,6 +140,13 @@ export function NewListingForm() {
               <select className="input" value={category} onChange={e => setCategory(e.target.value)}>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
+            </div>
+            <div className="mb-6">
+              <label className="label">Tags <span className="text-ink-soft">— your own labels for grouping things on your shelf</span></label>
+              <TagInput value={tags} onChange={setTags} placeholder="lab, lenses, cabling…" />
+              <Mono className="text-ink-soft mt-2 block">
+                Free text. Type a tag, hit Enter. Items can have many. Suggestions show tags you&apos;ve used before.
+              </Mono>
             </div>
             <div>
               <label className="label">Photos</label>

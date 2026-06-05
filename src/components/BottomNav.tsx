@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 // Discover (formerly Feed) is the secondary "what's out there in the
 // neighbourhood" surface.
 const tabs: { href: string; label: string }[] = [
-  { href: '/loans',    label: 'Ledger' },
+  { href: '/loans',    label: 'Sharing' },
   { href: '/discover', label: 'Discover' },
   { href: '/listings', label: 'Mine' },
   { href: '/messages', label: 'Inbox' },

@@ -180,7 +180,7 @@ function NewLoanInner() {
       <header className="px-5 pt-12 pb-5 bg-paper border-b-[1.5px] border-ink">
         <div className="flex justify-between items-center">
           <Link href="/loans" className="text-ink-soft hover:text-ink">
-            <Mono>← Ledger</Mono>
+            <Mono>← Sharing</Mono>
           </Link>
           <Mono className="text-ink-soft">New entry</Mono>
         </div>
@@ -360,7 +360,7 @@ function NewLoanInner() {
           className="btn-primary w-full mt-2 flex justify-between items-center"
           disabled={busy}
         >
-          <span>{busy ? 'Saving…' : <>Add to <Italic>ledger</Italic></>}</span>
+          <span>{busy ? 'Saving…' : <>Add to <Italic>sharing</Italic></>}</span>
           <span aria-hidden>→</span>
         </button>
 

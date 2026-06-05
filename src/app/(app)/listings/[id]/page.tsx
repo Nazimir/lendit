@@ -5,6 +5,7 @@ import { ItemAd } from '@/components/ItemAd';
 import { Mono, Italic } from '@/components/typography';
 import { ListingActions } from './ListingActions';
 import { RequestList } from './RequestList';
+import { TagEditor } from './TagEditor';
 import type { Item, BorrowRequest, Profile, Loan } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -92,6 +93,10 @@ export default async function MyListingDetail({ params }: { params: { id: string
           </Link>
         </section>
       )}
+
+      <section className="px-5 mt-7">
+        <TagEditor itemId={(item as Item).id} initialTags={(item as Item).tags ?? []} />
+      </section>
 
       <section className="px-5 mt-4">
         <ListingActions item={item as Item} />

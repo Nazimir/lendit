@@ -65,7 +65,7 @@ export function ManualLoanDetail({
   }
 
   async function del() {
-    if (!window.confirm('Delete this loan from your ledger? This cannot be undone.')) return;
+    if (!window.confirm('Delete this loan from your records? This cannot be undone.')) return;
     setBusy(true); setError(null);
     const sb = createClient();
     const { error } = await sb.from('loans').delete().eq('id', loan.id);
@@ -87,7 +87,7 @@ export function ManualLoanDetail({
       <header className="px-5 pt-12 pb-5 bg-paper border-b-[1.5px] border-ink">
         <div className="flex justify-between items-center">
           <Link href="/loans" className="text-ink-soft hover:text-ink">
-            <Mono>← Ledger</Mono>
+            <Mono>← Sharing</Mono>
           </Link>
           <Mono className="text-ink-soft">{headerMode}</Mono>
         </div>
@@ -176,7 +176,7 @@ export function ManualLoanDetail({
           disabled={busy}
           className="w-full py-3 font-mono text-[11px] uppercase tracking-mono text-ink-soft hover:text-cat-tools transition-colors"
         >
-          Delete from ledger
+          Delete loan
         </button>
 
         {error && <p className="font-italic italic text-sm text-cat-tools">{error}</p>}

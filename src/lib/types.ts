@@ -114,6 +114,9 @@ export interface Item {
   quirks: Quirks;
   chain_handoffs_allowed: boolean;
   visibility: ItemVisibility;
+  /** User-defined free-text tags for organising the owner's shelf. Multi-value.
+   *  Lower-cased and trimmed by the app before insert. */
+  tags: string[];
   created_at: string;
   updated_at: string;
 }

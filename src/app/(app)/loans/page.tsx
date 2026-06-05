@@ -3,12 +3,13 @@ import { createClient } from '@/lib/supabase/server';
 import { Mono, Italic } from '@/components/typography';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { territoryForUser } from '@/lib/personalTerritory';
+import { TagFilterURL } from '@/components/TagFilterURL';
 import { InPersonInbox } from './InPersonInbox';
 import type { Loan, Item, Profile, BorrowRequest } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-export default async function LoansPage() {
+export default async function LoansPage({ searchParams }: { searchParams: { tag?: string } }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -28,15 +29,15 @@ export default async function LoansPage() {
       .order('updated_at', { ascending: false })
   ]);
 
-  const list = (loans || []) as Loan[];
+  const fullList = (loans || []) as Loan[];
   const pendingReqs = (pendingReqsRaw || []) as BorrowRequest[];
 
   const itemIds = Array.from(new Set([
-    ...list.map(l => l.item_id),
+    ...fullList.map(l => l.item_id),
     ...pendingReqs.map(r => r.item_id)
   ]));
   const counterpartyIds = Array.from(new Set([
-    ...list.map(l => l.lender_id === user.id ? l.borrower_id : l.lender_id),
+    ...fullList.map(l => l.lender_id === user.id ? l.borrower_id : l.lender_id),
     ...pendingReqs.map(r => r.lender_id === user.id ? r.borrower_id : r.lender_id)
   ].filter((id): id is string => id !== null)));
 
@@ -53,6 +54,23 @@ export default async function LoansPage() {
     ((profilesRaw || []) as Pick<Profile, 'id' | 'first_name'>[]).map(p => [p.id, p])
   );
 
+  // Tag filter — pulled from items referenced by the user's full loan set.
+  // (We only include tags from items the user OWNS, since the lender's tags
+  // are the canonical organisation; borrowed items live as private stubs
+  // with no meaningful tags yet.)
+  const itemById = new Map(items.map(i => [i.id, i]));
+  const tagsFromOwnedItems = Array.from(new Set(
+    items.filter(i => i.owner_id === user.id).flatMap(i => i.tags ?? [])
+  )).sort();
+  const activeTag = searchParams.tag ?? null;
+
+  const list = activeTag
+    ? fullList.filter(l => {
+        const it = itemById.get(l.item_id);
+        return it ? (it.tags ?? []).includes(activeTag) : false;
+      })
+    : fullList;
+
   // Group loans: out = in-hand right now; coming = handover pending / chain
   // approved; past = ended (completed/cancelled/lost).
   const out     = list.filter(l => l.status === 'active' || l.status === 'pending_return');
@@ -60,8 +78,10 @@ export default async function LoansPage() {
   const disputed= list.filter(l => l.status === 'disputed');
   const past    = list.filter(l => ['completed', 'cancelled', 'lost'].includes(l.status));
 
-  const lentTotal     = list.filter(l => l.lender_id === user.id && l.status === 'completed').length;
-  const borrowedTotal = list.filter(l => l.borrower_id === user.id && l.status === 'completed').length;
+  // Lifetime totals come from the unfiltered set — the headline counts
+  // shouldn't shrink just because the user is currently filtering by tag.
+  const lentTotal     = fullList.filter(l => l.lender_id === user.id && l.status === 'completed').length;
+  const borrowedTotal = fullList.filter(l => l.borrower_id === user.id && l.status === 'completed').length;
 
   const isoWeek = isoWeekNumber(new Date());
 
@@ -69,7 +89,7 @@ export default async function LoansPage() {
     <main className="max-w-2xl mx-auto pb-8">
       <header className="px-5 pt-12 pb-5 bg-paper border-b-[1.5px] border-ink">
         <div className="flex justify-between items-center">
-          <Mono className="text-ink-soft">The · Ledger</Mono>
+          <Mono className="text-ink-soft">The · Sharing</Mono>
           <Mono className="text-ink-soft">WK {isoWeek}</Mono>
         </div>
         <h1 className="mt-3 font-display font-extrabold text-[56px] leading-[0.85] tracking-[-0.045em] text-ink">
@@ -115,10 +135,22 @@ export default async function LoansPage() {
         </Link>
       </section>
 
-      {list.length === 0 && pendingReqs.length === 0 ? (
+      {tagsFromOwnedItems.length > 0 && (
+        <section className="px-5 pt-5">
+          <TagFilterURL tags={tagsFromOwnedItems} />
+        </section>
+      )}
+
+      {fullList.length === 0 && pendingReqs.length === 0 ? (
         <section className="px-5 py-12 text-center">
           <p className="font-italic italic text-[18px] text-ink-soft">
             Nothing in circulation yet. Log a loan you&apos;ve already made — or browse the feed to borrow something.
+          </p>
+        </section>
+      ) : activeTag && list.length === 0 ? (
+        <section className="px-5 py-10 text-center">
+          <p className="font-italic italic text-[16px] text-ink-soft">
+            Nothing in circulation matches <Italic>{activeTag}</Italic>.
           </p>
         </section>
       ) : list.length === 0 ? null : (
