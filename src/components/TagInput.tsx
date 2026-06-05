@@ -140,9 +140,10 @@ function Chip({ label, onRemove }: { label: string; onRemove: () => void }) {
 }
 
 /**
- * Filter version — chip strip that highlights the currently-selected tag.
- * Used at the top of /listings (Mine) and /loans (Sharing) so the user
- * can narrow what they see. Passing null to onSelect means "show all".
+ * Filter version — compact inline dropdown. Reads like a sentence:
+ * "Filtering · all ▾" or "Filtering · water ▾". One line regardless of
+ * how many tags exist. Native <select> for free mobile drawer UI and
+ * accessibility. Passing null to onSelect means "show all".
  */
 export function TagFilterStrip({
   tags, selected, onSelect
@@ -153,33 +154,33 @@ export function TagFilterStrip({
 }) {
   if (tags.length === 0) return null;
   return (
-    <div className="flex flex-wrap gap-1.5">
-      <FilterChip label="All" active={selected === null} onClick={() => onSelect(null)} />
-      {tags.map(t => (
-        <FilterChip
-          key={t}
-          label={t}
-          active={selected === t}
-          onClick={() => onSelect(selected === t ? null : t)}
-        />
-      ))}
-    </div>
-  );
-}
-
-function FilterChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        'px-3 py-1 text-[12px] font-display border transition-colors ' +
-        (active
-          ? 'bg-ink text-paper border-ink'
-          : 'bg-paper text-ink border-ink/25 hover:border-ink')
-      }
-    >
-      {label}
-    </button>
+    <label className="inline-flex items-baseline gap-2 text-ink-soft">
+      <span className="font-mono text-[10px] uppercase tracking-mono">Filtering ·</span>
+      <span className="relative inline-flex items-baseline">
+        <span
+          className="font-display italic text-[15px] text-ink pr-5"
+          aria-hidden
+        >
+          {selected ?? 'all'}
+        </span>
+        {/* Chevron */}
+        <span
+          aria-hidden
+          className="absolute right-0 top-1/2 -translate-y-1/2 text-ink-soft text-[10px] pointer-events-none"
+        >▾</span>
+        {/* The native select sits on top, invisible, to keep platform UX. */}
+        <select
+          value={selected ?? ''}
+          onChange={e => onSelect(e.target.value === '' ? null : e.target.value)}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          aria-label="Filter by tag"
+        >
+          <option value="">all</option>
+          {tags.map(t => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </span>
+    </label>
   );
 }
