@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     url: 'https://partaz.app',
     siteName: 'Partaz',
     type: 'website',
-    images: [{ url: '/icon-512.png', width: 512, height: 512, alt: 'Partaz' }]
+    images: [{ url: '/og-card.png', width: 1200, height: 630, alt: 'Partaz' }]
   },
   twitter: {
     card: 'summary',
@@ -44,17 +44,15 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Partaz' },
   icons: {
-    // Standard favicon
+    // Standard favicon — proper small sizes so browser tabs render crisply
     icon: [
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' }
+      { url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' }
     ],
     // iOS home-screen icon — REQUIRED for iOS to launch the PWA in standalone
     // mode rather than as a Safari bookmark
-    apple: [
-      { url: '/icon-192.png', sizes: '192x192' },
-      { url: '/icon-512.png', sizes: '512x512' }
-    ]
+    apple: [{ url: '/apple-icon-180.png', sizes: '180x180' }]
   }
 };
 
