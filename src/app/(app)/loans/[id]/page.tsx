@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Wordmark } from '@/components/Wordmark';
@@ -240,8 +241,7 @@ function ItemContextStrip({ item, otherProfile }: { item: Item | null; otherProf
     >
       <div className="w-16 h-16 overflow-hidden relative" style={{ background: paletteForCategory(item.category).bg }}>
         {item.photos?.[0] && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.photos[0]} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <Image src={item.photos[0]} alt="" fill sizes="64px" className="object-cover" />
         )}
       </div>
       <div className="min-w-0">

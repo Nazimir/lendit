@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/server';
 import { ItemCard } from '@/components/ItemCard';
 import { Wordmark } from '@/components/Wordmark';
@@ -123,8 +124,7 @@ export default async function HomePage({ searchParams }: { searchParams: { q?: s
                         style={{ background: palette.bg }}
                       >
                         {item.photos?.[0] && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={item.photos[0]} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                          <Image src={item.photos[0]} alt="" fill sizes="56px" className="object-cover" />
                         )}
                       </div>
                       <div className="min-w-0 flex-1">

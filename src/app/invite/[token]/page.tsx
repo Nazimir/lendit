@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Wordmark } from '@/components/Wordmark';
@@ -64,11 +65,13 @@ export default async function InvitePage({ params }: { params: { token: string }
           style={{ background: palette.bg, color: palette.ink }}
         >
           {itemObj.photos[0] && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={itemObj.photos[0]}
               alt={itemObj.title}
-              className="w-full aspect-[4/3] object-cover"
+              width={672}
+              height={504}
+              sizes="(max-width: 672px) 100vw, 672px"
+              className="w-full h-auto aspect-[4/3] object-cover"
             />
           )}
           <div className="p-5">

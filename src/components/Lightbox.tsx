@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import Image from 'next/image';
 
 /**
  * Tap-to-zoom image. Renders an <img> by default; clicking it opens a
@@ -38,11 +39,10 @@ export function Lightbox({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="block w-full h-full p-0 m-0 border-0 cursor-zoom-in"
+        className="relative block w-full h-full p-0 m-0 border-0 cursor-zoom-in"
         aria-label="Open image"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt={alt} className={className} style={style} />
+        <Image src={src} alt={alt} fill sizes="170px" className={className ?? 'object-cover'} style={style} />
       </button>
       {open && typeof window !== 'undefined' && createPortal(
         <div

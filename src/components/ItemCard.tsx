@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { grainStyle } from '@/lib/grain';
 import { Mono, Italic } from '@/components/typography';
@@ -44,8 +45,7 @@ function splitTitle(title: string): { first: string; rest: string } {
 
 function Photo({ src, alt, fallback }: { src?: string; alt: string; fallback: string }) {
   if (src) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt={alt} className="absolute inset-0 w-full h-full object-cover" />;
+    return <Image src={src} alt={alt} fill sizes="(max-width: 672px) 100vw, 672px" className="object-cover" />;
   }
   return (
     <div className="absolute inset-0 flex items-center justify-center">

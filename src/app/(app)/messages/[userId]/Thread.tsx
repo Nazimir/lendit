@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import type { Message, Item } from '@/lib/types';
 
@@ -149,10 +150,9 @@ function ContextCard({ item, mine }: { item: Item; mine: boolean }) {
           : 'bg-white border-accent-400 text-accent-900 hover:bg-cream-50')
       }
     >
-      <div className="w-9 h-9 rounded-lg overflow-hidden bg-cream-200 shrink-0">
+      <div className="w-9 h-9 rounded-lg overflow-hidden bg-cream-200 shrink-0 relative">
         {item.photos?.[0] && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.photos[0]} alt="" className="w-full h-full object-cover" />
+          <Image src={item.photos[0]} alt="" fill sizes="36px" className="object-cover" />
         )}
       </div>
       <div className="min-w-0 flex-1">

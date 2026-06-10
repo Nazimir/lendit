@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/server';
 import { Mono, Italic } from '@/components/typography';
 import { MonoBadge } from '@/components/MonoBadge';
@@ -43,7 +44,15 @@ export default async function MyListingsPage({ searchParams }: { searchParams: {
 
   const outCount = itemList.filter(i => !i.is_available).length;
   const restingCount = itemList.filter(i => i.is_available).length;
-  const overdueCount = 0; // TODO: compute from loans with due_at < now
+
+  // Overdue = loans I lent that are still out past their due date.
+  const { count: overdueRaw } = await supabase
+    .from('loans')
+    .select('id', { count: 'exact', head: true })
+    .eq('lender_id', user.id)
+    .in('status', ['active', 'pending_return'])
+    .lt('due_at', new Date().toISOString());
+  const overdueCount = overdueRaw ?? 0;
 
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'short', day: '2-digit', month: 'short'
@@ -144,8 +153,7 @@ function ShelfRow({ item, pending }: { item: Item; pending: number }) {
         style={{ background: palette.bg, ...grainStyle }}
       >
         {item.photos?.[0] && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.photos[0]} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <Image src={item.photos[0]} alt="" fill sizes="64px" className="object-cover" />
         )}
       </Link>
       <Link href={`/listings/${item.id}`} className="min-w-0">

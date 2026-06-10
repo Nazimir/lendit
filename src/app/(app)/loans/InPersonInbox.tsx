@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Mono, Italic } from '@/components/typography';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import {
@@ -129,10 +130,9 @@ function RequestRow({
   return (
     <li className="border-b border-dashed border-ink/30 py-4">
       <div className="grid grid-cols-[48px_1fr_auto] gap-3 items-start">
-        <div className="w-12 h-12 rounded-md overflow-hidden shrink-0" style={{ background: palette.bg }}>
+        <div className="w-12 h-12 rounded-md overflow-hidden shrink-0 relative" style={{ background: palette.bg }}>
           {item?.photos?.[0] && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.photos[0]} alt="" className="w-full h-full object-cover" />
+            <Image src={item.photos[0]} alt="" fill sizes="48px" className="object-cover" />
           )}
         </div>
         <div className="min-w-0">

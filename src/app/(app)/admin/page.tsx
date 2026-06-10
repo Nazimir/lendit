@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/server';
 import { isAdmin } from '@/lib/admin';
 import { Wordmark } from '@/components/Wordmark';
@@ -268,10 +269,9 @@ function ContextBlock({
     if (!i) return <Mono className="text-ink-soft">Item not found.</Mono>;
     return (
       <Link href={`/items/${i.id}`} className="flex items-center gap-3 border border-ink/15 rounded-2xl p-3 hover:border-ink/40 transition">
-        <div className="w-12 h-12 rounded-xl bg-paper-soft overflow-hidden shrink-0">
+        <div className="w-12 h-12 rounded-xl bg-paper-soft overflow-hidden shrink-0 relative">
           {i.photos[0] && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={i.photos[0]} alt="" className="w-full h-full object-cover" />
+            <Image src={i.photos[0]} alt="" fill sizes="48px" className="object-cover" />
           )}
         </div>
         <div className="flex-1 min-w-0">

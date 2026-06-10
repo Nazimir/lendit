@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { CATEGORIES, type Item } from '@/lib/types';
 import { Wordmark } from '@/components/Wordmark';
@@ -372,10 +373,9 @@ function ExistingItemStrip({ item }: { item: Item }) {
         className="rounded-2xl p-3 flex items-center gap-3"
         style={{ background: palette.bg, color: palette.ink }}
       >
-        <div className="w-16 h-16 rounded-xl overflow-hidden bg-paper-soft shrink-0">
+        <div className="w-16 h-16 rounded-xl overflow-hidden bg-paper-soft shrink-0 relative">
           {item.photos[0] && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.photos[0]} alt="" className="w-full h-full object-cover" />
+            <Image src={item.photos[0]} alt="" fill sizes="64px" className="object-cover" />
           )}
         </div>
         <div className="min-w-0 flex-1">
