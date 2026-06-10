@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Wordmark } from '@/components/Wordmark';
@@ -9,6 +10,46 @@ import { ClaimForm } from './ClaimForm';
 import type { LendInvite, Item, Profile } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * Rich link previews for invite links shared via WhatsApp / iMessage.
+ * Shows the item photo and a personal title instead of a bare URL.
+ */
+export async function generateMetadata({ params }: { params: { token: string } }): Promise<Metadata> {
+  const supabase = createClient();
+  const { data: invite } = await supabase
+    .from('lend_invites')
+    .select('item_id, lender_id')
+    .eq('token', params.token)
+    .maybeSingle();
+  if (!invite) return {};
+
+  const [{ data: item }, { data: lender }] = await Promise.all([
+    supabase.from('items').select('title, photos').eq('id', invite.item_id).maybeSingle(),
+    supabase.from('profiles').select('first_name').eq('id', invite.lender_id).maybeSingle()
+  ]);
+  if (!item) return {};
+
+  const photo: string | undefined = (item.photos as string[] | null)?.[0];
+  const title = `${lender?.first_name ?? 'Someone'} wants to lend you "${item.title}"`;
+  const description = 'An in-person loan on Partaz — tap to see the details and accept.';
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      siteName: 'Partaz',
+      ...(photo ? { images: [{ url: photo, alt: item.title as string }] } : {})
+    },
+    twitter: {
+      card: photo ? 'summary_large_image' : 'summary',
+      title,
+      description
+    }
+  };
+}
 
 export default async function InvitePage({ params }: { params: { token: string } }) {
   const supabase = createClient();

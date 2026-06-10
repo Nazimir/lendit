@@ -25,8 +25,22 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://partaz.app'),
   title: 'Partaz',
   description: 'Borrow stuff from your neighbours, free.',
+  openGraph: {
+    title: 'Partaz',
+    description: 'Borrow stuff from your neighbours, free.',
+    url: 'https://partaz.app',
+    siteName: 'Partaz',
+    type: 'website',
+    images: [{ url: '/icon-512.png', width: 512, height: 512, alt: 'Partaz' }]
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Partaz',
+    description: 'Borrow stuff from your neighbours, free.'
+  },
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Partaz' },
   icons: {
