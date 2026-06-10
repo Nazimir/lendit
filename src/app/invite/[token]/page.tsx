@@ -17,20 +17,12 @@ export const dynamic = 'force-dynamic';
  */
 export async function generateMetadata({ params }: { params: { token: string } }): Promise<Metadata> {
   const supabase = createClient();
-  const { data: invite } = await supabase
-    .from('lend_invites')
-    .select('item_id, lender_id')
-    .eq('token', params.token)
-    .maybeSingle();
-  if (!invite) return {};
+  const { data } = await supabase.rpc('get_lend_invite', { p_token: params.token });
+  if (!data?.item) return {};
+  const item = data.item as { title: string; photos: string[] | null };
+  const lender = data.lender as { first_name: string | null };
 
-  const [{ data: item }, { data: lender }] = await Promise.all([
-    supabase.from('items').select('title, photos').eq('id', invite.item_id).maybeSingle(),
-    supabase.from('profiles').select('first_name').eq('id', invite.lender_id).maybeSingle()
-  ]);
-  if (!item) return {};
-
-  const photo: string | undefined = (item.photos as string[] | null)?.[0];
+  const photo: string | undefined = item.photos?.[0];
   const title = `${lender?.first_name ?? 'Someone'} wants to lend you "${item.title}"`;
   const description = 'An in-person loan on Partaz — tap to see the details and accept.';
 
@@ -55,25 +47,17 @@ export default async function InvitePage({ params }: { params: { token: string }
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: invite } = await supabase
-    .from('lend_invites')
-    .select('*')
-    .eq('token', params.token)
-    .maybeSingle();
+  // Token-scoped read via SECURITY DEFINER RPC — the public lend_invites /
+  // profiles SELECT policies were removed so anonymous visitors can't
+  // enumerate invites or user data; this function is the only window in.
+  const { data } = await supabase.rpc('get_lend_invite', { p_token: params.token });
+  if (!data?.invite) notFound();
 
-  if (!invite) notFound();
-
-  const inv = invite as LendInvite;
+  const inv = data.invite as Pick<LendInvite, 'token' | 'status' | 'expires_at' | 'recipient_hint' | 'loan_period_days'>;
   const expired = new Date(inv.expires_at).getTime() < Date.now();
 
-  const [{ data: item }, { data: lender }] = await Promise.all([
-    supabase.from('items').select('*').eq('id', inv.item_id).single(),
-    supabase.from('profiles').select('*').eq('id', inv.lender_id).single()
-  ]);
-  if (!item || !lender) notFound();
-
-  const itemObj = item as Item;
-  const lenderObj = lender as Profile;
+  const itemObj = data.item as Pick<Item, 'id' | 'title' | 'description' | 'category' | 'photos'>;
+  const lenderObj = data.lender as Pick<Profile, 'first_name' | 'suburb'>;
   const palette = paletteForCategory(itemObj.category);
 
   return (

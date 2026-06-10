@@ -158,55 +158,23 @@ export async function claimInvite(token: string): Promise<
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not signed in.' };
 
-  const { data: invite } = await supabase
-    .from('lend_invites')
-    .select('*')
-    .eq('token', token)
-    .eq('status', 'pending')
-    .maybeSingle();
-  if (!invite) return { error: 'Invite not found or already used.' };
-  if (new Date(invite.expires_at).getTime() < Date.now()) {
-    return { error: 'This invite has expired.' };
+  // Whole claim runs atomically in the database (SECURITY DEFINER RPC):
+  // validates the token, creates + accepts the request, links the loan and
+  // marks the invite claimed — with a row lock so a token can't be claimed
+  // twice. Direct table access for anon/non-lenders was removed.
+  const { data: loanId, error } = await supabase.rpc('claim_lend_invite', { p_token: token });
+
+  if (error) {
+    const m = error.message || '';
+    if (m.includes('invite_not_found')) return { error: 'Invite not found or already used.' };
+    if (m.includes('invite_expired')) return { error: 'This invite has expired.' };
+    if (m.includes('own_invite')) return { error: "You can't claim your own invite — share it with someone else." };
+    if (m.includes('not_signed_in')) return { error: 'Not signed in.' };
+    return { error: 'Could not claim the invite: ' + m };
   }
-  if (invite.lender_id === user.id) {
-    return { error: "You can't claim your own invite — share it with someone else." };
-  }
-
-  // Create accepted request + loan via trigger
-  const { data: req, error: reqErr } = await supabase
-    .from('borrow_requests')
-    .insert({
-      item_id: invite.item_id,
-      borrower_id: user.id,
-      lender_id: invite.lender_id,
-      message: 'In-person loan via invite link.',
-      status: 'pending'
-    })
-    .select('id')
-    .single();
-  if (reqErr || !req) return { error: 'Could not create the loan: ' + (reqErr?.message || 'unknown') };
-
-  const { error: acceptErr } = await supabase
-    .from('borrow_requests')
-    .update({ status: 'accepted' })
-    .eq('id', req.id);
-  if (acceptErr) return { error: 'Could not accept the loan: ' + acceptErr.message };
-
-  const { data: loan } = await supabase
-    .from('loans')
-    .select('id')
-    .eq('request_id', req.id)
-    .maybeSingle();
-
-  await supabase.from('lend_invites').update({
-    status: 'claimed',
-    claimed_by: user.id,
-    claimed_at: new Date().toISOString(),
-    loan_id: loan?.id ?? null
-  }).eq('id', invite.id);
 
   revalidatePath('/loans');
-  return { ok: true, loan_id: (loan?.id as string) || '' };
+  return { ok: true, loan_id: (loanId as string) || '' };
 }
 
 function randomToken(): string {
