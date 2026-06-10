@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { createClient } from '@/lib/supabase/server';
+import { Wordmark } from '@/components/Wordmark';
 import { Mono, Italic } from '@/components/typography';
 import { MonoBadge } from '@/components/MonoBadge';
 import { paletteForCategory } from '@/lib/categoryStyle';
@@ -66,11 +67,12 @@ export default async function MyListingsPage({ searchParams }: { searchParams: {
   return (
     <main className="max-w-2xl mx-auto pb-8">
       {/* Editorial header */}
-      <header className="px-5 pt-12 pb-5 bg-paper border-b-[1.5px] border-ink">
-        <div className="flex justify-between items-center">
-          <Mono className="text-ink-soft">Your · Shelf</Mono>
+      <header className="px-5 pt-6 pb-5 bg-paper border-b-[1.5px] border-ink">
+        <div className="flex justify-between items-center mb-6">
+          <Wordmark size={22} />
           <Mono className="text-ink-soft">{today}</Mono>
         </div>
+        <Mono className="text-ink-soft block">Your · Shelf</Mono>
         <h1 className="mt-3 font-display font-extrabold text-[60px] leading-[0.85] tracking-[-0.045em] text-ink">
           {total === 0 ? <>An <Italic>empty</Italic> shelf.</> : <>{countWord} <Italic>{total === 1 ? 'thing' : 'things'}</Italic>.</>}
         </h1>

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { Wordmark } from '@/components/Wordmark';
 import { Mono, Italic } from '@/components/typography';
 import { paletteForCategory } from '@/lib/categoryStyle';
 import { territoryForUser } from '@/lib/personalTerritory';
@@ -87,11 +88,12 @@ export default async function LoansPage({ searchParams }: { searchParams: { tag?
 
   return (
     <main className="max-w-2xl mx-auto pb-8">
-      <header className="px-5 pt-12 pb-5 bg-paper border-b-[1.5px] border-ink">
-        <div className="flex justify-between items-center">
-          <Mono className="text-ink-soft">The · Sharing</Mono>
+      <header className="px-5 pt-6 pb-5 bg-paper border-b-[1.5px] border-ink">
+        <div className="flex justify-between items-center mb-6">
+          <Wordmark size={22} />
           <Mono className="text-ink-soft">WK {isoWeek}</Mono>
         </div>
+        <Mono className="text-ink-soft block">The · Sharing</Mono>
         <h1 className="mt-3 font-display font-extrabold text-[56px] leading-[0.85] tracking-[-0.045em] text-ink">
           In <Italic>circulation</Italic>.
         </h1>
